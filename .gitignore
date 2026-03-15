@@ -20,3 +20,6 @@ Thumbs.db
 .env
 .env.*
 .claude/settings.local.json
+
+# Editor metadata (version history, variables, custom presets)
+.claude-prompts/
