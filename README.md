@@ -2,6 +2,10 @@
 
 A lightweight desktop IDE for crafting, validating, and testing Claude API prompts following [Anthropic's best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices). Built with Tauri 2.0 (Rust + Svelte 5), distributed as a single binary for Linux and Mac.
 
+![Source Mode - Monaco editor with prompt syntax highlighting and Prompt Health panel](docs/screenshots/source-mode.png)
+
+![Structure Mode - Block-based visual editor with metadata form and structure outline](docs/screenshots/structure-mode.png)
+
 ## Features
 
 **Dual-Mode Editor**
