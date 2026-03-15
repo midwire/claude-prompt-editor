@@ -24,31 +24,13 @@ impl McpState {
 /// Replace `{{key}}` patterns in content with values from vars.
 /// Keys not found in vars are left as-is.
 pub fn interpolate_variables(content: &str, vars: &HashMap<String, String>) -> String {
-    let mut result = content.to_string();
-    for (key, value) in vars {
-        let pattern = format!("{{{{{}}}}}", key);
-        result = result.replace(&pattern, value);
-    }
-    result
+    crate::parser::variables::interpolate(content, vars)
 }
 
 /// Strip YAML frontmatter (lines between opening and closing `---`) from content.
 pub fn strip_frontmatter(content: &str) -> String {
-    let trimmed = content.trim_start();
-    if !trimmed.starts_with("---") {
-        return content.to_string();
-    }
-    // Find the closing ---
-    if let Some(rest) = trimmed.strip_prefix("---") {
-        if let Some(end_idx) = rest.find("\n---") {
-            let after_closing = &rest[end_idx + 4..]; // skip "\n---"
-            // Skip optional newline after closing ---
-            let after_closing = after_closing.strip_prefix('\n').unwrap_or(after_closing);
-            return after_closing.to_string();
-        }
-    }
-    // No closing ---, return as-is
-    content.to_string()
+    let (_metadata, body, _raw) = crate::parser::frontmatter::parse_frontmatter(content);
+    body
 }
 
 /// Load a prompt by name, strip frontmatter, and interpolate variables.

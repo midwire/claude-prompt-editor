@@ -1,5 +1,6 @@
 mod commands;
 mod mcp;
+pub mod parser;
 
 use commands::file;
 use commands::mcp::McpServerState;
