@@ -22,6 +22,7 @@ fn list_prompts(dir: String) -> Result<Vec<file::PromptListEntry>, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             open_prompt,
             save_prompt,
