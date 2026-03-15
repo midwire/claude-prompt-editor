@@ -1,6 +1,6 @@
 <script lang="ts">
   import { open, save } from "@tauri-apps/plugin-dialog";
-  import { openPrompt, savePrompt } from "./lib/tauri";
+  import { openPrompt, savePrompt, getMcpPort } from "./lib/tauri";
   import { currentContent } from "./lib/stores/editor";
   import { fileState } from "./lib/stores/files";
   import { editorMode, parseFromContent } from "./lib/stores/prompt";
@@ -19,6 +19,7 @@
   let mode = $state<"source" | "structure">("source");
   let rightPanelTab = $state<"health" | "history">("health");
   let showNewPromptWizard = $state(false);
+  let mcpCopyFeedback = $state(false);
 
   fileState.subscribe((s) => {
     currentPath = s.path;
@@ -110,6 +111,34 @@
     currentContent.set(content);
   }
 
+  async function handleCopyMcpConfig() {
+    try {
+      const port = await getMcpPort();
+      if (port === null) {
+        console.warn("MCP server port not yet available");
+        return;
+      }
+      const config = JSON.stringify(
+        {
+          mcpServers: {
+            "claude-prompt-editor": {
+              url: `http://localhost:${port}/mcp`,
+            },
+          },
+        },
+        null,
+        2,
+      );
+      await navigator.clipboard.writeText(config);
+      mcpCopyFeedback = true;
+      setTimeout(() => {
+        mcpCopyFeedback = false;
+      }, 2000);
+    } catch (e) {
+      console.error("Failed to copy MCP config:", e);
+    }
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === "o") {
       e.preventDefault();
@@ -133,6 +162,9 @@
     <button onclick={handleNewPrompt} title="New prompt (Ctrl+N)">New</button>
     <button onclick={handleOpen} title="Open file (Ctrl+O)">Open</button>
     <button onclick={handleSave} title="Save file (Ctrl+S)">Save</button>
+    <button onclick={handleCopyMcpConfig} title="Copy MCP server config to clipboard" class:copied={mcpCopyFeedback}>
+      {mcpCopyFeedback ? "Copied!" : "Copy MCP Config"}
+    </button>
   </div>
   <EditorTabs />
   <div class="main-content">
@@ -215,6 +247,10 @@
   .toolbar button:hover {
     background-color: #1177bb;
     border-color: transparent;
+  }
+
+  .toolbar button.copied {
+    background-color: #2ea043;
   }
 
   .main-content {

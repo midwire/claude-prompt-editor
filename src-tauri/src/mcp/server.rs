@@ -60,6 +60,17 @@ async fn handle_mcp(State(state): State<SharedState>, Json(body): Json<Value>) -
                             },
                             "required": ["prompt_name", "key", "value"]
                         }
+                    },
+                    {
+                        "name": "get_prompt_health",
+                        "description": "Run the linter on a prompt and return lint findings as JSON",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string", "description": "Prompt file name (without .md extension)" }
+                            },
+                            "required": ["name"]
+                        }
                     }
                 ]
             })
@@ -120,6 +131,21 @@ async fn handle_mcp(State(state): State<SharedState>, Json(body): Json<Value>) -
                     json!({
                         "content": [{ "type": "text", "text": "Variable set successfully" }]
                     })
+                }
+                "get_prompt_health" => {
+                    let name = arguments
+                        .get("name")
+                        .and_then(|n| n.as_str())
+                        .unwrap_or("");
+                    match crate::mcp::tools::get_prompt_health(&state, name) {
+                        Ok(json_str) => json!({
+                            "content": [{ "type": "text", "text": json_str }]
+                        }),
+                        Err(e) => json!({
+                            "isError": true,
+                            "content": [{ "type": "text", "text": e }]
+                        }),
+                    }
                 }
                 _ => json!({
                     "isError": true,

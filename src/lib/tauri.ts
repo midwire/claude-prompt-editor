@@ -32,3 +32,7 @@ export async function parseContent(content: string): Promise<PromptAst> {
 export async function serializeAst(ast: PromptAst): Promise<string> {
   return invoke("serialize_ast", { ast });
 }
+
+export async function getMcpPort(): Promise<number | null> {
+  return invoke("get_mcp_port");
+}
