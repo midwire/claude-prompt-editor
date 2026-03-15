@@ -5417,3 +5417,681 @@ git commit -m "feat: complete MVP of Claude Prompt Editor"
 ```
 
 ---
+
+## Chunk 7: Spec Gap Coverage
+
+Addresses features from the spec not covered in Chunks 1-6, identified during plan review.
+
+### Task 24: Missing Templates and Presets
+
+**Files:**
+- Modify: `src-tauri/src/preset/templates.rs` (add missing templates)
+- Modify: `src-tauri/src/preset/builtin.rs` (add missing presets)
+- Create: `src-tauri/src/preset/custom.rs` (custom preset CRUD)
+- Modify: `src-tauri/src/commands/preset.rs` (add save_preset command)
+
+- [ ] **Step 1: Add missing blank template (Full)**
+
+Add to `builtin_templates()` in `templates.rs`:
+```rust
+Template {
+    id: "blank-full".into(),
+    name: "Full".into(),
+    description: "Role, context, instructions, examples (3), constraints, output format".into(),
+    category: TemplateCategory::Blank,
+    content: "---\nname: \"{{name}}\"\nmodel: claude-opus-4-6\nversion: 1\ntags: []\nthinking:\n  type: adaptive\neffort: high\n---\n\n<role>\n{{role_description}}\n</role>\n\n<context>\n{{context}}\n</context>\n\n<instructions>\n\n</instructions>\n\n<examples>\n<example>\n<input>\n\n</input>\n<output>\n\n</output>\n</example>\n<example>\n<input>\n\n</input>\n<output>\n\n</output>\n</example>\n<example>\n<input>\n\n</input>\n<output>\n\n</output>\n</example>\n</examples>\n\n<constraints>\n\n</constraints>\n\n<output_format>\n\n</output_format>\n".into(),
+},
+```
+
+- [ ] **Step 2: Add missing use-case templates (Data Extraction, Research/RAG, Conversational)**
+
+Add to `builtin_templates()`:
+```rust
+Template {
+    id: "usecase-data-extraction".into(),
+    name: "Data Extraction".into(),
+    description: "Role, document context, output schema, grounding instructions".into(),
+    category: TemplateCategory::UseCase,
+    content: "---\nname: \"{{name}}\"\nmodel: claude-opus-4-6\nversion: 1\ntags: [extraction]\n---\n\n<role>\nYou are a data extraction specialist. Extract structured data from the provided documents.\n</role>\n\n<documents>\n{{documents}}\n</documents>\n\n<output_schema>\n{{schema}}\n</output_schema>\n\n<instructions>\nFirst, find quotes from the documents that are relevant to each field in the output schema. Place these in <quotes> tags. Then extract the structured data based on those quotes.\n</instructions>\n".into(),
+},
+Template {
+    id: "usecase-research".into(),
+    name: "Research/RAG".into(),
+    description: "Role, indexed document structure, citation instructions".into(),
+    category: TemplateCategory::UseCase,
+    content: "---\nname: \"{{name}}\"\nmodel: claude-opus-4-6\nversion: 1\ntags: [research]\nthinking:\n  type: adaptive\neffort: high\n---\n\n<role>\nYou are a research assistant that synthesizes information from multiple sources with proper citations.\n</role>\n\n<documents>\n<document index=\"1\">\n<source>{{source_1}}</source>\n<document_content>\n{{content_1}}\n</document_content>\n</document>\n</documents>\n\n<instructions>\nAnalyze the provided documents. When citing information, reference the source document by index. Synthesize findings across sources when relevant.\n</instructions>\n".into(),
+},
+Template {
+    id: "usecase-conversational".into(),
+    name: "Conversational".into(),
+    description: "Role with personality, conversation style, multi-turn handling".into(),
+    category: TemplateCategory::UseCase,
+    content: "---\nname: \"{{name}}\"\nmodel: claude-sonnet-4-6\nversion: 1\ntags: [conversational]\n---\n\n<role>\nYou are {{persona}}. You communicate in a {{tone}} style.\n</role>\n\n<conversation_style>\n- Be conversational and natural\n- Ask follow-up questions when the user's intent is unclear\n- Remember context from earlier in the conversation\n</conversation_style>\n\n<guidelines>\n\n</guidelines>\n".into(),
+},
+```
+
+- [ ] **Step 3: Add missing presets (example skeletons, variable presets)**
+
+Add to `builtin_presets()` in `builtin.rs`:
+```rust
+// Example skeletons
+Preset {
+    id: "example-classification".into(),
+    name: "Classification Example".into(),
+    category: PresetCategory::ExampleSkeleton,
+    content: "<example>\n<input>\n{{input}}\n</input>\n<output>\n{{label}}\n</output>\n</example>".into(),
+    tag_name: Some("example".into()),
+    metadata_defaults: None,
+},
+Preset {
+    id: "example-extraction".into(),
+    name: "Extraction Example".into(),
+    category: PresetCategory::ExampleSkeleton,
+    content: "<example>\n<input>\n{{input_text}}\n</input>\n<output>\n{\"field\": \"value\"}\n</output>\n</example>".into(),
+    tag_name: Some("example".into()),
+    metadata_defaults: None,
+},
+Preset {
+    id: "example-qa".into(),
+    name: "Q&A Example".into(),
+    category: PresetCategory::ExampleSkeleton,
+    content: "<example>\n<question>\n{{question}}\n</question>\n<answer>\n{{answer}}\n</answer>\n</example>".into(),
+    tag_name: Some("example".into()),
+    metadata_defaults: None,
+},
+```
+
+- [ ] **Step 4: Implement custom preset save/load**
+
+Implement `src-tauri/src/preset/custom.rs`:
+```rust
+use super::builtin::Preset;
+use std::path::Path;
+
+pub fn save_custom_preset(project_dir: &Path, preset: &Preset) -> Result<(), String> {
+    let dir = project_dir.join(".claude-prompts").join("presets");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(format!("{}.yaml", preset.id));
+    let yaml = serde_yaml::to_string(preset).map_err(|e| e.to_string())?;
+    std::fs::write(path, yaml).map_err(|e| e.to_string())
+}
+
+pub fn load_custom_presets(project_dir: &Path) -> Vec<Preset> {
+    let dir = project_dir.join(".claude-prompts").join("presets");
+    if !dir.exists() {
+        return vec![];
+    }
+    let mut presets = vec![];
+    if let Ok(entries) = std::fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            if entry.path().extension().and_then(|s| s.to_str()) == Some("yaml") {
+                if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                    if let Ok(preset) = serde_yaml::from_str::<Preset>(&content) {
+                        presets.push(preset);
+                    }
+                }
+            }
+        }
+    }
+    presets
+}
+```
+
+Add Tauri command in `commands/preset.rs`:
+```rust
+#[tauri::command]
+pub fn save_preset(project_dir: String, preset: Preset) -> Result<(), String> {
+    crate::preset::custom::save_custom_preset(&PathBuf::from(project_dir), &preset)
+}
+```
+
+Register in invoke_handler.
+
+- [ ] **Step 5: Run tests and commit**
+
+```bash
+cd src-tauri && cargo test -- --nocapture && cargo build
+git add src-tauri/src/preset/ src-tauri/src/commands/preset.rs src-tauri/src/lib.rs
+git commit -m "feat: add missing templates, presets, and custom preset CRUD"
+```
+
+---
+
+### Task 25: Missing Lint Rules
+
+**Files:**
+- Modify: `src-tauri/src/linter/structural.rs` (add LongContextLayoutRule)
+- Modify: `src-tauri/src/linter/antipatterns.rs` (add DeprecatedPatternsRule, MissingContextRule)
+- Modify: `src-tauri/src/linter/mod.rs` (register new rules)
+
+- [ ] **Step 1: Add LongContextLayoutRule**
+
+Add to `structural.rs`:
+```rust
+pub struct LongContextLayoutRule;
+
+impl LintRule for LongContextLayoutRule {
+    fn id(&self) -> &str { "long-context-layout" }
+    fn description(&self) -> &str { "Documents/data should appear above instructions" }
+    fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
+        let mut last_instruction_idx = None;
+        let mut first_document_after_instructions = None;
+
+        for (i, block) in ast.blocks.iter().enumerate() {
+            match &block.kind {
+                BlockKind::Instructions => last_instruction_idx = Some(i),
+                BlockKind::Documents | BlockKind::Context => {
+                    if last_instruction_idx.is_some() && first_document_after_instructions.is_none() {
+                        first_document_after_instructions = Some(i);
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if let Some(doc_idx) = first_document_after_instructions {
+            vec![LintResult {
+                rule_id: self.id().to_string(),
+                severity: Severity::Warning,
+                message: "Documents/data appear below instructions.".into(),
+                detail: "Place long-form data above your query and instructions for up to 30% better results.".into(),
+                block_index: Some(doc_idx),
+                fix_suggestion: Some("Move document blocks above instruction blocks.".into()),
+            }]
+        } else {
+            vec![]
+        }
+    }
+}
+```
+
+- [ ] **Step 2: Add DeprecatedPatternsRule and MissingContextRule**
+
+Add to `antipatterns.rs`:
+```rust
+pub struct DeprecatedPatternsRule;
+
+impl LintRule for DeprecatedPatternsRule {
+    fn id(&self) -> &str { "deprecated-patterns" }
+    fn description(&self) -> &str { "Deprecated prompt patterns detected" }
+    fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
+        let patterns = [
+            ("Let me think step by step", "manual CoT — use thinking: adaptive instead"),
+            ("<thinking>", "manual thinking tags — use thinking: adaptive instead"),
+            ("Here is the requested", "prefill preamble — deprecated in Claude 4.6"),
+        ];
+        let mut results = vec![];
+        for (i, block) in ast.blocks.iter().enumerate() {
+            for (pattern, suggestion) in &patterns {
+                if block.content.contains(pattern) {
+                    results.push(LintResult {
+                        rule_id: self.id().to_string(),
+                        severity: Severity::Warning,
+                        message: format!("Deprecated pattern: {}", suggestion),
+                        detail: "This pattern is no longer needed with Claude 4.6 models.".into(),
+                        block_index: Some(i),
+                        fix_suggestion: Some(suggestion.to_string()),
+                    });
+                    break;
+                }
+            }
+        }
+        results
+    }
+}
+
+pub struct MissingContextRule;
+
+impl LintRule for MissingContextRule {
+    fn id(&self) -> &str { "missing-context" }
+    fn description(&self) -> &str { "Instructions without context or motivation" }
+    fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
+        let mut results = vec![];
+        for (i, block) in ast.blocks.iter().enumerate() {
+            if block.kind == BlockKind::Instructions {
+                let has_because = block.content.to_lowercase().contains("because");
+                let has_so_that = block.content.to_lowercase().contains("so that");
+                let has_reason = block.content.to_lowercase().contains("this is important");
+                let lines: Vec<&str> = block.content.lines().collect();
+                // Heuristic: short instruction blocks (<3 lines) without motivation
+                if lines.len() <= 3 && !has_because && !has_so_that && !has_reason {
+                    results.push(LintResult {
+                        rule_id: self.id().to_string(),
+                        severity: Severity::Suggestion,
+                        message: "Consider adding context for why these instructions matter.".into(),
+                        detail: "Explaining motivation helps Claude generalize and follow instructions better.".into(),
+                        block_index: Some(i),
+                        fix_suggestion: None,
+                    });
+                }
+            }
+        }
+        results
+    }
+}
+```
+
+- [ ] **Step 3: Register all new rules and test**
+
+Add to `linter/mod.rs` `lint()` function:
+```rust
+Box::new(structural::LongContextLayoutRule),
+Box::new(antipatterns::DeprecatedPatternsRule),
+Box::new(antipatterns::MissingContextRule),
+```
+
+Run:
+```bash
+cd src-tauri && cargo test linter -- --nocapture
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src-tauri/src/linter/
+git commit -m "feat: add long-context-layout, deprecated-patterns, and missing-context lint rules"
+```
+
+---
+
+### Task 26: Version History UI Completeness
+
+**Files:**
+- Modify: `src/lib/components/Panels/VersionHistory.svelte` (add restore, annotation UI)
+- Modify: `src/lib/tauri.ts` (add annotate version command)
+- Modify: `src-tauri/src/version/store.rs` (add annotate function)
+- Modify: `src-tauri/src/commands/version.rs` (add annotate + restore commands)
+
+- [ ] **Step 1: Add restore and annotate backend**
+
+Add to `src-tauri/src/version/store.rs`:
+```rust
+pub fn annotate_version(
+    project_dir: &Path,
+    prompt_name: &str,
+    version: u32,
+    annotation: &str,
+) -> Result<(), String> {
+    let mut history = load_history(project_dir, prompt_name);
+    if let Some(entry) = history.entries.iter_mut().find(|e| e.version == version) {
+        entry.annotation = Some(annotation.to_string());
+        let json = serde_json::to_string_pretty(&history).map_err(|e| e.to_string())?;
+        std::fs::write(history_file(project_dir, prompt_name), json).map_err(|e| e.to_string())?;
+        Ok(())
+    } else {
+        Err(format!("Version {} not found", version))
+    }
+}
+```
+
+Add Tauri commands in `commands/version.rs`:
+```rust
+#[tauri::command]
+pub fn annotate_version(
+    project_dir: String,
+    prompt_name: String,
+    version: u32,
+    annotation: String,
+) -> Result<(), String> {
+    store::annotate_version(&PathBuf::from(&project_dir), &prompt_name, version, &annotation)
+}
+
+#[tauri::command]
+pub fn restore_version(
+    project_dir: String,
+    prompt_name: String,
+    version: u32,
+) -> Result<String, String> {
+    store::get_version(&PathBuf::from(&project_dir), &prompt_name, version)
+        .map(|e| e.content)
+        .ok_or_else(|| format!("Version {} not found", version))
+}
+```
+
+Register both in invoke_handler.
+
+- [ ] **Step 2: Add restore and annotate UI to VersionHistory.svelte**
+
+Add restore button next to each version entry:
+```svelte
+<button class="restore-btn" on:click|stopPropagation={() => handleRestore(entry)}>
+  Restore
+</button>
+```
+
+Add annotation input (click version note to edit):
+```svelte
+{#if editingAnnotation === entry.version}
+  <input
+    type="text"
+    class="annotation-input"
+    value={entry.annotation ?? ""}
+    on:blur={(e) => saveAnnotation(entry.version, e.currentTarget.value)}
+    on:keydown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+    autofocus
+  />
+{/if}
+```
+
+Add handler functions:
+```typescript
+import { savePrompt, savePromptVersion } from "../../tauri";
+
+async function handleRestore(entry: VersionEntry) {
+  // Restore creates a new version with the old content
+  currentContent.set(entry.content);
+  isDirty.set(true);
+}
+
+async function saveAnnotation(version: number, text: string) {
+  await invoke("annotate_version", { projectDir, promptName, version, annotation: text });
+  editingAnnotation = null;
+  await refreshHistory(projectDir, promptName);
+}
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src-tauri/src/version/ src-tauri/src/commands/version.rs src/lib/components/Panels/VersionHistory.svelte src/lib/tauri.ts
+git commit -m "feat: add version restore and annotation editing"
+```
+
+---
+
+### Task 27: Right Panel Tabs and Structure Outline
+
+**Files:**
+- Create: `src/lib/components/Panels/PanelTabs.svelte`
+- Create: `src/lib/components/Sidebar/StructureOutline.svelte`
+- Modify: `src/App.svelte` (integrate panel tabs and outline)
+
+- [ ] **Step 1: Create PanelTabs component**
+
+Create `src/lib/components/Panels/PanelTabs.svelte`:
+```svelte
+<script lang="ts">
+  import { writable } from "svelte/store";
+  import PromptHealth from "./PromptHealth.svelte";
+  import VersionHistory from "./VersionHistory.svelte";
+
+  type PanelTab = "health" | "history";
+  let activeTab = writable<PanelTab>("health");
+</script>
+
+<div class="panel-container">
+  <div class="panel-tabs">
+    <button class:active={$activeTab === "health"} on:click={() => activeTab.set("health")}>
+      Health
+    </button>
+    <button class:active={$activeTab === "history"} on:click={() => activeTab.set("history")}>
+      History
+    </button>
+  </div>
+  <div class="panel-content">
+    {#if $activeTab === "health"}
+      <PromptHealth />
+    {:else}
+      <VersionHistory />
+    {/if}
+  </div>
+</div>
+
+<style>
+  .panel-container { display: flex; flex-direction: column; height: 100%; }
+  .panel-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border, #313244);
+  }
+  .panel-tabs button {
+    flex: 1;
+    padding: 6px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .panel-tabs button.active {
+    color: var(--text-primary, #cdd6f4);
+    border-bottom-color: var(--accent, #89b4fa);
+  }
+  .panel-content { flex: 1; overflow: hidden; }
+</style>
+```
+
+- [ ] **Step 2: Create StructureOutline for source mode sidebar**
+
+Create `src/lib/components/Sidebar/StructureOutline.svelte`:
+```svelte
+<script lang="ts">
+  import { currentAst } from "../../stores/prompt";
+  import { blockKindLabel, blockKindIcon } from "../../types";
+  import type { Block } from "../../types";
+
+  function flattenBlocks(blocks: Block[]): { block: Block; depth: number }[] {
+    const result: { block: Block; depth: number }[] = [];
+    for (const block of blocks) {
+      result.push({ block, depth: 0 });
+      for (const child of block.children) {
+        result.push({ block: child, depth: 1 });
+      }
+    }
+    return result;
+  }
+
+  $: items = $currentAst ? flattenBlocks($currentAst.blocks) : [];
+</script>
+
+<div class="structure-outline">
+  <h4>Structure</h4>
+  {#each items as { block, depth }}
+    <div class="outline-item" style="padding-left: {8 + depth * 16}px" class:disabled={!block.enabled}>
+      <span class="icon">{blockKindIcon(block.kind)}</span>
+      <span class="label">{block.tag_name ?? blockKindLabel(block.kind)}</span>
+    </div>
+  {/each}
+</div>
+
+<style>
+  .structure-outline { padding: 8px; }
+  h4 { margin: 0 0 8px; font-size: 12px; color: #888; text-transform: uppercase; }
+  .outline-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
+    border-radius: 3px;
+  }
+  .outline-item:hover { background: #181825; }
+  .outline-item.disabled { opacity: 0.4; }
+  .icon { font-size: 12px; }
+</style>
+```
+
+- [ ] **Step 3: Integrate into App.svelte**
+
+Replace the right panel in App.svelte with `PanelTabs`. Add `StructureOutline` as a collapsible section in the left sidebar or above the right panel.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/lib/components/Panels/PanelTabs.svelte src/lib/components/Sidebar/StructureOutline.svelte src/App.svelte
+git commit -m "feat: add right panel tabs and structure outline sidebar"
+```
+
+---
+
+### Task 28: Examples Add/Remove and Preset Palette
+
+**Files:**
+- Modify: `src/lib/components/Blocks/ExamplesBlock.svelte` (add/remove buttons)
+- Create: `src/lib/components/Dialogs/PresetPalette.svelte`
+- Modify: `src/lib/components/Editor/StructureEditor.svelte` (add block button with preset option)
+
+- [ ] **Step 1: Add add/remove to ExamplesBlock**
+
+Update `ExamplesBlock.svelte` to include add and remove buttons:
+```svelte
+<button class="add-btn" on:click={() => dispatch("add-child", { parentIndex: index })}>
+  + Add Example
+</button>
+
+<!-- For each child, add a remove button -->
+<button class="remove-btn" on:click|stopPropagation={() => dispatch("remove-child", { parentIndex: index, childIndex: childIdx })}>
+  ×
+</button>
+```
+
+Handle in `StructureEditor.svelte`:
+```typescript
+function handleAddChild(e: CustomEvent) {
+  if (!$currentAst) return;
+  const { parentIndex } = e.detail;
+  const updated = structuredClone($currentAst);
+  const newExample = {
+    kind: "Example" as const,
+    tag_name: "example",
+    content: "\n\n",
+    children: [],
+    enabled: true,
+    start_offset: 0,
+    end_offset: 0,
+  };
+  updated.blocks[parentIndex].children.push(newExample);
+  syncAstToContent(updated);
+}
+
+function handleRemoveChild(e: CustomEvent) {
+  if (!$currentAst) return;
+  const { parentIndex, childIndex } = e.detail;
+  const updated = structuredClone($currentAst);
+  updated.blocks[parentIndex].children.splice(childIndex, 1);
+  syncAstToContent(updated);
+}
+```
+
+- [ ] **Step 2: Create PresetPalette component**
+
+Create `src/lib/components/Dialogs/PresetPalette.svelte`:
+```svelte
+<script lang="ts">
+  import { presets, loadPresets } from "../../stores/presets";
+  import type { Preset } from "../../stores/presets";
+  import { onMount, createEventDispatcher } from "svelte";
+
+  const dispatch = createEventDispatcher();
+  let search = "";
+  let filteredPresets: Preset[] = [];
+
+  onMount(() => {
+    loadPresets();
+  });
+
+  $: filteredPresets = $presets.filter(
+    (p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.category.toLowerCase().includes(search.toLowerCase())
+  );
+
+  function selectPreset(preset: Preset) {
+    dispatch("select", { preset });
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape") dispatch("close");
+  }
+</script>
+
+<svelte:window on:keydown={handleKeydown} />
+
+<div class="palette-overlay" on:click|self={() => dispatch("close")}>
+  <div class="palette">
+    <input
+      type="text"
+      class="search-input"
+      bind:value={search}
+      placeholder="Search presets..."
+      autofocus
+    />
+    <div class="preset-list">
+      {#each filteredPresets as preset}
+        <button class="preset-item" on:click={() => selectPreset(preset)}>
+          <span class="preset-name">{preset.name}</span>
+          <span class="preset-category">{preset.category}</span>
+        </button>
+      {/each}
+    </div>
+  </div>
+</div>
+
+<style>
+  .palette-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 20vh;
+    z-index: 100;
+  }
+  .palette {
+    background: #1e1e2e;
+    border: 1px solid #313244;
+    border-radius: 8px;
+    width: 400px;
+    max-height: 400px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .search-input {
+    padding: 12px;
+    background: #11111b;
+    border: none;
+    border-bottom: 1px solid #313244;
+    color: #cdd6f4;
+    font-size: 14px;
+    outline: none;
+  }
+  .preset-list { overflow-y: auto; flex: 1; }
+  .preset-item {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    color: #cdd6f4;
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+  }
+  .preset-item:hover { background: #181825; }
+  .preset-category { color: #888; font-size: 11px; }
+</style>
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/lib/components/Blocks/ExamplesBlock.svelte src/lib/components/Dialogs/PresetPalette.svelte src/lib/components/Editor/StructureEditor.svelte
+git commit -m "feat: add example add/remove and searchable preset palette"
+```
+
+---
+
+### Known Deferred Items (acceptable for MVP)
+
+The following features are acknowledged gaps and intentionally deferred to post-MVP iterations:
+
+- **One-click lint fixes** — UI shows suggestions as text; automated fix application requires reliable AST manipulation which is better done after the editor is stabilized
+- **Disabled block round-trip** — serializing disabled blocks as HTML comments works, but re-parsing them back to disabled state is deferred (comment preservation is sufficient for MVP)
+- **Claude Code auto-install** — Copy-to-clipboard of MCP config is sufficient; auto-detection and injection into `~/.claude/claude_code_config.json` adds complexity with edge cases
+- **Contextual best-practice hints on blocks** — Lint panel provides this information; inline hints per-block can be added iteratively
+- **Rename `md5_hash` to `content_hash`** — cosmetic, fix during implementation
+
+---
