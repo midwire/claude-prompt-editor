@@ -1,5 +1,6 @@
 <script lang="ts">
   import { open, save } from "@tauri-apps/plugin-dialog";
+  import { writeText } from "@tauri-apps/plugin-clipboard-manager";
   import { openPrompt, savePrompt, getMcpPort } from "./lib/tauri";
   import { currentContent } from "./lib/stores/editor";
   import { fileState } from "./lib/stores/files";
@@ -130,7 +131,7 @@
         null,
         2,
       );
-      await navigator.clipboard.writeText(config);
+      await writeText(config);
       mcpCopyFeedback = true;
       setTimeout(() => {
         mcpCopyFeedback = false;
