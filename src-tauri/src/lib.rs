@@ -62,6 +62,9 @@ pub fn run() {
             save_prompt,
             list_prompts,
             get_mcp_port,
+            commands::prompt::parse_prompt,
+            commands::prompt::parse_content,
+            commands::prompt::serialize_ast,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
