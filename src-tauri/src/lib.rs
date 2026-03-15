@@ -43,13 +43,25 @@ pub fn run() {
         .setup(|app| {
             let mcp_server_state = app.state::<McpServerState>().inner().clone();
 
-            // Prompts directory: use PROMPTS_DIR env var, or default to ./prompts
+            // Prompts directory: use PROMPTS_DIR env var, or find prompts/ relative
+            // to the project root. During `tauri dev`, cwd is src-tauri/, so we
+            // walk up looking for a directory containing prompts/.
             let prompts_dir = std::env::var("PROMPTS_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| {
-                    std::env::current_dir()
-                        .unwrap_or_else(|_| PathBuf::from("."))
-                        .join("prompts")
+                    let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+                    // Check cwd, then parent, then grandparent for a prompts/ dir
+                    let mut dir = cwd.as_path();
+                    loop {
+                        let candidate = dir.join("prompts");
+                        if candidate.is_dir() {
+                            break candidate;
+                        }
+                        match dir.parent() {
+                            Some(parent) => dir = parent,
+                            None => break cwd.join("prompts"), // fallback
+                        }
+                    }
                 });
 
             // MCP port: use MCP_PORT env var, or default to 9780
