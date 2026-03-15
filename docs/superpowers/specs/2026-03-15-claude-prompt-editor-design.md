@@ -84,7 +84,7 @@ Review the provided code for:
 </examples>
 ```
 
-**Frontmatter** captures API parameters and editor metadata (name, model, version, tags, thinking config, effort).
+**Frontmatter** captures API parameters and editor metadata (name, model, version, tags, thinking config, effort). The `version` field is auto-incremented by the editor on each save and corresponds to the version history entries in `.claude-prompts/history/`.
 
 **Body** is the actual prompt text sent to Claude. XML tags structure the content. Variable interpolation via `{{variable_name}}` is supported for reusable prompts.
 
@@ -136,7 +136,7 @@ Monaco-based editor with:
 
 ### Sync Behavior
 
-- Edits in either mode update the shared AST
+- Edits in either mode update the shared AST; the active mode owns the write — last write wins (single-user app, no conflict resolution needed)
 - The AST is the single source of truth; both views render from it
 - Parsing is fault-tolerant: malformed XML doesn't break structure mode, those sections render as freeform blocks
 - Live token counter in the status bar updates as you edit
@@ -233,14 +233,14 @@ For `{{variables}}`, a palette of common variable types with sensible defaults a
 
 ### Built-In Server
 
-The MCP server starts automatically with the editor, running on a local port.
+The MCP server starts automatically with the editor, running on a local port via SSE (Server-Sent Events) transport. SSE is used because the editor and Claude Code are separate processes (stdio requires parent-child relationship). The server binds to `localhost` on a configurable port (default auto-selected).
 
 ### Tools Exposed to Claude Code
 
 - **`load_prompt(name)`** - Returns current prompt content, fully rendered (variables interpolated, disabled blocks excluded). Primary injection mechanism.
 - **`list_prompts()`** - Lists all prompts in current project with name, description, last modified.
 - **`get_prompt_health(name)`** - Returns linting results for a prompt, allowing Claude Code to suggest improvements.
-- **`set_variable(name, key, value)`** - Sets a variable value for a prompt so the next `load_prompt` returns the interpolated version.
+- **`set_variable(name, key, value)`** - Sets a variable value for a prompt so the next `load_prompt` returns the interpolated version. Variable values are stored in-memory for the session and persisted to `.claude-prompts/variables.yaml` so they survive editor restarts.
 
 ### Claude Code Setup
 
@@ -345,6 +345,15 @@ When creating a prompt, choose a starting point.
 - pnpm for JS dependencies
 
 ## Scope Summary
+
+### Walking Skeleton (first milestone within MVP)
+
+Minimal end-to-end flow to validate the architecture before building all features:
+1. Open/save a markdown prompt file
+2. Source mode editing with syntax highlighting
+3. MCP server serving the current prompt via `load_prompt`
+
+Once the skeleton works, fill in remaining MVP features.
 
 ### MVP (v1)
 
