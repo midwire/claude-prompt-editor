@@ -10,6 +10,9 @@ use commands::mcp::McpServerState;
 use std::path::PathBuf;
 use tauri::Manager;
 
+/// Default MCP server port. Can be overridden via MCP_PORT env var.
+const DEFAULT_MCP_PORT: u16 = 9780;
+
 #[tauri::command]
 fn open_prompt(path: String) -> Result<file::PromptFile, String> {
     file::read_prompt_file(&PathBuf::from(path))
@@ -39,16 +42,28 @@ pub fn run() {
         .manage(McpServerState::new())
         .setup(|app| {
             let mcp_server_state = app.state::<McpServerState>().inner().clone();
-            let prompts_dir = app
-                .path()
-                .app_data_dir()
-                .unwrap_or_else(|_| PathBuf::from("."))
-                .join("prompts");
+
+            // Prompts directory: use PROMPTS_DIR env var, or default to ./prompts
+            let prompts_dir = std::env::var("PROMPTS_DIR")
+                .map(PathBuf::from)
+                .unwrap_or_else(|_| {
+                    std::env::current_dir()
+                        .unwrap_or_else(|_| PathBuf::from("."))
+                        .join("prompts")
+                });
+
+            // MCP port: use MCP_PORT env var, or default to 9780
+            let mcp_port = std::env::var("MCP_PORT")
+                .ok()
+                .and_then(|p| p.parse::<u16>().ok())
+                .unwrap_or(DEFAULT_MCP_PORT);
+
+            eprintln!("Prompts directory: {}", prompts_dir.display());
 
             tauri::async_runtime::spawn(async move {
-                match commands::mcp::start_mcp(prompts_dir, 0).await {
+                match commands::mcp::start_mcp(prompts_dir, mcp_port).await {
                     Ok(port) => {
-                        eprintln!("MCP server started on port {}", port);
+                        eprintln!("MCP server started on http://localhost:{}/mcp", port);
                         if let Ok(mut p) = mcp_server_state.port.lock() {
                             *p = Some(port);
                         }
