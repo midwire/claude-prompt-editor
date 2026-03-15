@@ -1,12 +1,14 @@
-use super::ast::{Block, BlockKind, PromptAst};
+use super::ast::{Block, BlockKind, PromptAst, PromptMetadata};
 
-/// Serialize a `PromptAst` back to markdown (with optional YAML frontmatter).
+/// Serialize a `PromptAst` back to markdown (with YAML frontmatter from metadata).
 pub fn serialize(ast: &PromptAst) -> String {
     let mut out = String::new();
 
-    if !ast.raw_frontmatter.is_empty() {
-        out.push_str(&ast.raw_frontmatter);
-        out.push_str("\n\n");
+    let fm = serialize_frontmatter(&ast.metadata);
+    if !fm.is_empty() {
+        out.push_str("---\n");
+        out.push_str(&fm);
+        out.push_str("---\n\n");
     }
 
     for block in &ast.blocks {
@@ -16,14 +18,57 @@ pub fn serialize(ast: &PromptAst) -> String {
     out
 }
 
+/// Serialize metadata to YAML frontmatter content (without the --- delimiters).
+fn serialize_frontmatter(meta: &PromptMetadata) -> String {
+    let mut lines = Vec::new();
+
+    if !meta.name.is_empty() {
+        lines.push(format!("name: \"{}\"", meta.name));
+    }
+    if !meta.model.is_empty() {
+        lines.push(format!("model: {}", meta.model));
+    }
+    if meta.version > 0 {
+        lines.push(format!("version: {}", meta.version));
+    }
+    if !meta.tags.is_empty() {
+        let tags: Vec<String> = meta.tags.iter().map(|t| format!("{}", t)).collect();
+        lines.push(format!("tags: [{}]", tags.join(", ")));
+    }
+    if let Some(ref thinking) = meta.thinking {
+        lines.push("thinking:".to_string());
+        lines.push(format!("  type: {}", thinking.kind));
+    }
+    if let Some(ref effort) = meta.effort {
+        if !effort.is_empty() {
+            lines.push(format!("effort: {}", effort));
+        }
+    }
+    // Serialize any extra fields
+    for (key, value) in &meta.extra {
+        if let Ok(yaml_val) = serde_yaml::to_string(value) {
+            let trimmed = yaml_val.trim();
+            lines.push(format!("{}: {}", key, trimmed));
+        }
+    }
+
+    if lines.is_empty() {
+        String::new()
+    } else {
+        lines.join("\n") + "\n"
+    }
+}
+
 /// Serialize AST to markdown, but skip disabled blocks.
 /// Used by MCP load_prompt to produce the "rendered" prompt.
 pub fn serialize_enabled_only(ast: &PromptAst) -> String {
     let mut out = String::new();
 
-    if !ast.raw_frontmatter.is_empty() {
-        out.push_str(&ast.raw_frontmatter);
-        out.push_str("\n\n");
+    let fm = serialize_frontmatter(&ast.metadata);
+    if !fm.is_empty() {
+        out.push_str("---\n");
+        out.push_str(&fm);
+        out.push_str("---\n\n");
     }
 
     for block in &ast.blocks {
@@ -78,23 +123,43 @@ mod tests {
     fn test_serialize_simple_prompt() {
         let metadata = PromptMetadata {
             name: "test-prompt".to_string(),
-            model: "claude-sonnet".to_string(),
+            model: "claude-sonnet-4-6".to_string(),
             ..Default::default()
         };
-        let raw_frontmatter = "---\nname: test-prompt\nmodel: claude-sonnet\n---".to_string();
         let blocks = vec![make_block(
             BlockKind::Role,
             "role",
             "You are a helpful assistant.",
         )];
-        let ast = PromptAst::new(metadata, blocks, raw_frontmatter);
+        let ast = PromptAst::new(metadata, blocks, String::new());
 
         let result = serialize(&ast);
-        assert!(result.starts_with("---\nname: test-prompt"));
+        assert!(result.contains("name: \"test-prompt\""));
+        assert!(result.contains("model: claude-sonnet-4-6"));
         assert!(result.contains("---\n\n"));
         assert!(result.contains("<role>"));
         assert!(result.contains("You are a helpful assistant."));
         assert!(result.contains("</role>"));
+    }
+
+    #[test]
+    fn test_serialize_preserves_metadata_changes() {
+        let metadata = PromptMetadata {
+            name: "my-prompt".to_string(),
+            model: "claude-opus-4-6".to_string(),
+            version: 2,
+            effort: Some("high".to_string()),
+            tags: vec!["coding".to_string(), "review".to_string()],
+            ..Default::default()
+        };
+        let blocks = vec![make_block(BlockKind::Role, "role", "Helper.")];
+        let ast = PromptAst::new(metadata, blocks, String::new());
+
+        let result = serialize(&ast);
+        assert!(result.contains("model: claude-opus-4-6"));
+        assert!(result.contains("effort: high"));
+        assert!(result.contains("version: 2"));
+        assert!(result.contains("tags: [coding, review]"));
     }
 
     #[test]
