@@ -1,4 +1,4 @@
-use crate::parser::ast::PromptAst;
+use crate::parser::ast::{BlockKind, PromptAst};
 use super::rules::{LintResult, LintRule, Severity};
 use regex::Regex;
 
@@ -111,6 +111,92 @@ impl LintRule for VagueInstructionsRule {
     }
 }
 
+/// Detects deprecated prompting patterns that are unnecessary or counterproductive with modern models.
+pub struct DeprecatedPatternsRule;
+
+impl LintRule for DeprecatedPatternsRule {
+    fn id(&self) -> &str { "deprecated-patterns" }
+    fn description(&self) -> &str { "Detects outdated prompting patterns that are no longer needed" }
+
+    fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
+        let patterns: Vec<(Regex, &str, &str)> = vec![
+            (
+                Regex::new(r"(?i)let\s+me\s+think\s+step\s+by\s+step").unwrap(),
+                "\"Let me think step by step\" is a legacy chain-of-thought trigger",
+                "Use the thinking configuration in frontmatter instead of manual CoT triggers.",
+            ),
+            (
+                Regex::new(r"<thinking>|</thinking>").unwrap(),
+                "Manual <thinking> tags detected",
+                "Enable extended thinking via frontmatter (thinking.type: enabled) instead of manual tags.",
+            ),
+            (
+                Regex::new(r"(?i)here\s+is\s+the\s+requested").unwrap(),
+                "Prefill pattern \"Here is the requested\" detected",
+                "Modern models don't need prefill cues. Remove this pattern for cleaner output.",
+            ),
+        ];
+
+        let mut results = vec![];
+        for (i, block) in ast.blocks.iter().enumerate() {
+            for (pattern, message, suggestion) in &patterns {
+                if pattern.is_match(&block.content) {
+                    results.push(LintResult {
+                        rule_id: self.id().to_string(),
+                        severity: Severity::Warning,
+                        message: message.to_string(),
+                        detail: "This pattern was useful with older models but is unnecessary or counterproductive with Claude.".to_string(),
+                        block_index: Some(i),
+                        fix_suggestion: Some(suggestion.to_string()),
+                    });
+                    break; // One finding per block
+                }
+            }
+        }
+        results
+    }
+}
+
+/// Detects short instruction blocks that lack motivation/context.
+pub struct MissingContextRule;
+
+impl MissingContextRule {
+    fn count_lines(text: &str) -> usize {
+        text.lines().filter(|l| !l.trim().is_empty()).count()
+    }
+
+    fn has_motivation(text: &str) -> bool {
+        let lower = text.to_lowercase();
+        lower.contains("because") || lower.contains("so that") || lower.contains("this is important")
+            || lower.contains("the reason") || lower.contains("in order to")
+    }
+}
+
+impl LintRule for MissingContextRule {
+    fn id(&self) -> &str { "missing-context" }
+    fn description(&self) -> &str { "Short instructions should include motivation or context for better results" }
+
+    fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
+        let mut results = vec![];
+        for (i, block) in ast.blocks.iter().enumerate() {
+            if block.kind == BlockKind::Instructions {
+                let lines = Self::count_lines(&block.content);
+                if lines > 0 && lines < 3 && !Self::has_motivation(&block.content) {
+                    results.push(LintResult {
+                        rule_id: self.id().to_string(),
+                        severity: Severity::Suggestion,
+                        message: "Short instructions block without motivation".to_string(),
+                        detail: "Brief instructions benefit from context about why they matter. Adding motivation words like \"because\" or \"so that\" helps the model understand intent.".to_string(),
+                        block_index: Some(i),
+                        fix_suggestion: Some("Add context explaining why these instructions matter (e.g., \"because the output will be parsed by...\").".to_string()),
+                    });
+                }
+            }
+        }
+        results
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -204,6 +290,82 @@ mod tests {
             Block::new(BlockKind::Instructions, "Respond in JSON with keys: name, age, location.".into(), 0, 45),
         ]);
         let results = VagueInstructionsRule.check(&ast);
+        assert!(results.is_empty());
+    }
+
+    // DeprecatedPatternsRule tests
+    #[test]
+    fn deprecated_flags_step_by_step() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Instructions, "Let me think step by step about this.".into(), 0, 40),
+        ]);
+        let results = DeprecatedPatternsRule.check(&ast);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].rule_id, "deprecated-patterns");
+    }
+
+    #[test]
+    fn deprecated_flags_thinking_tags() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Freeform, "Use <thinking> tags to reason.".into(), 0, 30),
+        ]);
+        let results = DeprecatedPatternsRule.check(&ast);
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn deprecated_flags_prefill_pattern() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Freeform, "Here is the requested analysis:".into(), 0, 30),
+        ]);
+        let results = DeprecatedPatternsRule.check(&ast);
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn deprecated_passes_clean() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Instructions, "Analyze the input and provide a summary.".into(), 0, 40),
+        ]);
+        let results = DeprecatedPatternsRule.check(&ast);
+        assert!(results.is_empty());
+    }
+
+    // MissingContextRule tests
+    #[test]
+    fn missing_context_flags_short_instructions() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Instructions, "Return JSON output.".into(), 0, 20),
+        ]);
+        let results = MissingContextRule.check(&ast);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].rule_id, "missing-context");
+    }
+
+    #[test]
+    fn missing_context_passes_with_motivation() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Instructions, "Return JSON output because the downstream parser requires it.".into(), 0, 60),
+        ]);
+        let results = MissingContextRule.check(&ast);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn missing_context_passes_long_instructions() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Instructions, "Step 1: Read the input.\nStep 2: Analyze it.\nStep 3: Respond.".into(), 0, 60),
+        ]);
+        let results = MissingContextRule.check(&ast);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn missing_context_ignores_non_instructions() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Role, "Be a helper.".into(), 0, 15),
+        ]);
+        let results = MissingContextRule.check(&ast);
         assert!(results.is_empty());
     }
 }

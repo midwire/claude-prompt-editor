@@ -58,6 +58,43 @@ export async function saveVersion(
   }
 }
 
+export async function annotateVersion(
+  projectDir: string,
+  promptName: string,
+  versionId: number,
+  annotation: string,
+): Promise<void> {
+  try {
+    await invoke("annotate_version", {
+      projectDir,
+      promptName,
+      versionId,
+      annotation,
+    });
+    await refreshHistory(projectDir, promptName);
+  } catch (e) {
+    console.error("Failed to annotate version:", e);
+  }
+}
+
+export async function restoreVersion(
+  projectDir: string,
+  promptName: string,
+  versionId: number,
+): Promise<string | null> {
+  try {
+    const content: string = await invoke("restore_version", {
+      projectDir,
+      promptName,
+      versionId,
+    });
+    return content;
+  } catch (e) {
+    console.error("Failed to restore version:", e);
+    return null;
+  }
+}
+
 export async function computeDiff(
   projectDir: string,
   promptName: string,

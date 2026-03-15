@@ -152,6 +152,189 @@ When providing code changes, use this format:
 "#
             .into(),
         },
+        // --- Full blank template ---
+        Template {
+            id: "blank-full".into(),
+            name: "Full".into(),
+            category: TemplateCategory::Blank,
+            description: "A comprehensive template with role, context, instructions, examples, constraints, and output format.".into(),
+            content: r#"---
+name: {{name}}
+model: claude-sonnet-4-20250514
+version: 1
+tags: []
+---
+
+<role>
+You are a helpful assistant.
+</role>
+
+<context>
+[Provide background information here]
+</context>
+
+<instructions>
+1. Understand the user's request
+2. Plan your approach
+3. Execute carefully
+</instructions>
+
+<examples>
+<example>
+<input>[Example input 1]</input>
+<output>[Expected output 1]</output>
+</example>
+<example>
+<input>[Example input 2]</input>
+<output>[Expected output 2]</output>
+</example>
+<example>
+<input>[Example input 3]</input>
+<output>[Expected output 3]</output>
+</example>
+</examples>
+
+<constraints>
+- Be concise and direct
+- Ask for clarification when genuinely ambiguous
+</constraints>
+
+<output-format>
+Describe the expected response format here.
+</output-format>
+"#
+            .into(),
+        },
+        // --- Use-case templates ---
+        Template {
+            id: "usecase-data-extraction".into(),
+            name: "Data Extraction".into(),
+            category: TemplateCategory::UseCase,
+            description: "For extracting structured data from documents.".into(),
+            content: r#"---
+name: {{name}}
+model: claude-sonnet-4-20250514
+version: 1
+tags: [extraction]
+---
+
+<role>
+You are a precise data extraction engine. Extract structured information from the provided documents according to the output schema. Only include information explicitly stated in the source material.
+</role>
+
+<documents>
+{{documents}}
+</documents>
+
+<instructions>
+1. Read the provided documents carefully
+2. Extract data fields according to the output schema below
+3. If a field is not found in the source, set it to null
+4. Do not infer or fabricate data — only extract what is explicitly present
+</instructions>
+
+<output-format>
+Respond with valid JSON matching this schema:
+```json
+{
+  "extracted": [
+    {
+      "field_name": "value or null"
+    }
+  ],
+  "confidence": "high | medium | low",
+  "notes": "Any caveats about the extraction"
+}
+```
+</output-format>
+
+<constraints>
+- Ground every extracted value in the source text
+- Never hallucinate or infer missing data
+- If the document is ambiguous, note it in the "notes" field
+</constraints>
+"#
+            .into(),
+        },
+        Template {
+            id: "usecase-research-rag".into(),
+            name: "Research / RAG".into(),
+            category: TemplateCategory::UseCase,
+            description: "For answering questions from indexed documents with citations.".into(),
+            content: r#"---
+name: {{name}}
+model: claude-sonnet-4-20250514
+version: 1
+tags: [research, rag]
+---
+
+<role>
+You are a research assistant. Answer questions using ONLY the information provided in the indexed documents below. Always cite your sources.
+</role>
+
+<documents>
+<document index="1" title="[Document Title]">
+[Document content here]
+</document>
+<document index="2" title="[Document Title]">
+[Document content here]
+</document>
+</documents>
+
+<instructions>
+1. Read the user's question carefully
+2. Search the provided documents for relevant information
+3. Synthesize an answer using only the document content
+4. Cite sources using [Doc N] notation after each claim
+5. If the documents do not contain enough information to answer, say so explicitly
+</instructions>
+
+<constraints>
+- Never use information outside the provided documents
+- Always include citations in [Doc N] format
+- If documents conflict, note the discrepancy
+- Prefer direct quotes for important claims
+</constraints>
+
+<output-format>
+Provide a clear answer with inline citations. End with a "Sources" section listing the documents used.
+</output-format>
+"#
+            .into(),
+        },
+        Template {
+            id: "usecase-conversational".into(),
+            name: "Conversational".into(),
+            category: TemplateCategory::UseCase,
+            description: "For chatbot-style interactions with a defined personality.".into(),
+            content: r#"---
+name: {{name}}
+model: claude-sonnet-4-20250514
+version: 1
+tags: [conversational]
+---
+
+<role>
+You are a friendly, knowledgeable assistant with a warm and approachable personality. You speak in a conversational tone while remaining professional and accurate.
+</role>
+
+<instructions>
+- Match the user's tone and energy level
+- Use natural language; avoid robotic phrasing
+- Break complex topics into digestible explanations
+- Ask follow-up questions when the user's intent is unclear
+- Remember context from earlier in the conversation
+</instructions>
+
+<constraints>
+- Stay in character throughout the conversation
+- Be honest about limitations rather than guessing
+- Keep responses focused and avoid unnecessary verbosity
+- Use humor sparingly and appropriately
+</constraints>
+"#
+            .into(),
+        },
         Template {
             id: "usecase-classification".into(),
             name: "Classification".into(),
@@ -204,7 +387,7 @@ mod tests {
     #[test]
     fn templates_not_empty() {
         let templates = builtin_templates();
-        assert!(templates.len() >= 5);
+        assert!(templates.len() >= 9);
     }
 
     #[test]

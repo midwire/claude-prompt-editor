@@ -31,3 +31,29 @@ pub fn diff_versions(
 
     Ok(diff::compute_diff(&old.content, &new.content))
 }
+
+#[tauri::command]
+pub fn annotate_version(
+    project_dir: String,
+    prompt_name: String,
+    version_id: u32,
+    annotation: String,
+) -> Result<(), String> {
+    store::annotate_version(
+        &PathBuf::from(project_dir),
+        &prompt_name,
+        version_id,
+        &annotation,
+    )
+}
+
+#[tauri::command]
+pub fn restore_version(
+    project_dir: String,
+    prompt_name: String,
+    version_id: u32,
+) -> Result<String, String> {
+    store::get_version(&PathBuf::from(project_dir), &prompt_name, version_id)
+        .map(|v| v.content)
+        .ok_or_else(|| format!("Version {} not found", version_id))
+}

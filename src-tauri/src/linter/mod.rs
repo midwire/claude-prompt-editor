@@ -14,10 +14,13 @@ pub fn lint(ast: &PromptAst, disabled_rules: &[String]) -> Vec<LintResult> {
         Box::new(structural::SparseExamplesRule),
         Box::new(structural::UnstructuredLongPromptRule),
         Box::new(structural::UnbalancedXmlRule),
+        Box::new(structural::LongContextLayoutRule),
         // Anti-pattern rules
         Box::new(antipatterns::NegativeFramingRule),
         Box::new(antipatterns::OverPromptingRule),
         Box::new(antipatterns::VagueInstructionsRule),
+        Box::new(antipatterns::DeprecatedPatternsRule),
+        Box::new(antipatterns::MissingContextRule),
     ];
 
     all_rules
@@ -63,7 +66,7 @@ mod tests {
         }
         let ast = make_ast(vec![
             Block::new(BlockKind::Role, "You are a coding assistant.".into(), 0, 30),
-            Block::new(BlockKind::Instructions, "Respond in JSON format with keys: result, explanation.".into(), 30, 80),
+            Block::new(BlockKind::Instructions, "Respond in JSON format with keys: result, explanation.\nValidate the input first.\nReturn errors as a separate field.".into(), 30, 120),
             examples,
         ]);
         let results = lint(&ast, &[]);

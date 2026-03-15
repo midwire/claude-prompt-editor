@@ -74,6 +74,8 @@ pub fn run() {
             commands::version::save_prompt_version,
             commands::version::get_version_history,
             commands::version::diff_versions,
+            commands::version::annotate_version,
+            commands::version::restore_version,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

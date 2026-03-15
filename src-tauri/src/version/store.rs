@@ -103,6 +103,23 @@ pub fn save_version(
     Ok(Some(entry))
 }
 
+/// Add or update an annotation on a specific version.
+pub fn annotate_version(
+    project_dir: &Path,
+    prompt_name: &str,
+    version_id: u32,
+    annotation: &str,
+) -> Result<(), String> {
+    let mut history = load_history(project_dir, prompt_name);
+    let entry = history
+        .versions
+        .iter_mut()
+        .find(|v| v.id == version_id)
+        .ok_or_else(|| format!("Version {} not found", version_id))?;
+    entry.summary = Some(annotation.to_string());
+    save_history_file(project_dir, &history)
+}
+
 pub fn get_version(project_dir: &Path, prompt_name: &str, version_id: u32) -> Option<VersionEntry> {
     let history = load_history(project_dir, prompt_name);
     history.versions.into_iter().find(|v| v.id == version_id)
@@ -165,5 +182,23 @@ mod tests {
 
         let v_missing = get_version(tmp.path(), "test-prompt", 99);
         assert!(v_missing.is_none());
+    }
+
+    #[test]
+    fn annotate_version_updates_summary() {
+        let tmp = TempDir::new().unwrap();
+        save_version(tmp.path(), "test-prompt", "Content v1", None).unwrap();
+
+        annotate_version(tmp.path(), "test-prompt", 1, "Initial version").unwrap();
+
+        let v = get_version(tmp.path(), "test-prompt", 1).unwrap();
+        assert_eq!(v.summary, Some("Initial version".to_string()));
+    }
+
+    #[test]
+    fn annotate_version_not_found() {
+        let tmp = TempDir::new().unwrap();
+        let result = annotate_version(tmp.path(), "test-prompt", 99, "note");
+        assert!(result.is_err());
     }
 }

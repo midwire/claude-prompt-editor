@@ -13,11 +13,12 @@
   import PromptHealth from "./lib/components/Panels/PromptHealth.svelte";
   import VersionHistory from "./lib/components/Panels/VersionHistory.svelte";
   import NewPromptWizard from "./lib/components/Dialogs/NewPromptWizard.svelte";
+  import StructureOutline from "./lib/components/Sidebar/StructureOutline.svelte";
 
   let currentPath: string | null = $state(null);
   let currentName: string = $state("Untitled");
   let mode = $state<"source" | "structure">("source");
-  let rightPanelTab = $state<"health" | "history">("health");
+  let rightPanelTab = $state<"health" | "history" | "structure">("health");
   let showNewPromptWizard = $state(false);
   let mcpCopyFeedback = $state(false);
 
@@ -191,15 +192,24 @@
         >
           History
         </button>
+        <button
+          class="panel-tab"
+          class:active={rightPanelTab === "structure"}
+          onclick={() => (rightPanelTab = "structure")}
+        >
+          Structure
+        </button>
       </div>
       <div class="panel-content">
         {#if rightPanelTab === "health"}
           <PromptHealth />
-        {:else}
+        {:else if rightPanelTab === "history"}
           <VersionHistory
             projectDir={getProjectDir(currentPath)}
             promptName={getPromptName(currentPath, currentName)}
           />
+        {:else}
+          <StructureOutline />
         {/if}
       </div>
     </div>

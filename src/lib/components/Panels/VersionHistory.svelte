@@ -3,10 +3,13 @@
     versionHistory,
     currentDiff,
     computeDiff,
+    annotateVersion,
+    restoreVersion,
     type VersionEntry,
     type DiffResult,
     type VersionHistory as VH,
   } from "../../stores/version";
+  import { currentContent } from "../../stores/editor";
 
   let { projectDir, promptName }: { projectDir: string; promptName: string } = $props();
 
@@ -14,6 +17,8 @@
   let diff = $state<DiffResult | null>(null);
   let selectedOld = $state<number | null>(null);
   let selectedNew = $state<number | null>(null);
+  let editingAnnotation = $state<number | null>(null);
+  let annotationInput = $state("");
 
   versionHistory.subscribe((h) => (history = h));
   currentDiff.subscribe((d) => (diff = d));
@@ -28,12 +33,10 @@
       selectedOld = id;
     } else if (selectedNew === null && id !== selectedOld) {
       selectedNew = id;
-      // Ensure old < new for consistent diff direction
       const oldId = Math.min(selectedOld, selectedNew);
       const newId = Math.max(selectedOld, selectedNew);
       computeDiff(projectDir, promptName, oldId, newId);
     } else {
-      // Reset selection
       selectedOld = id;
       selectedNew = null;
       currentDiff.set(null);
@@ -56,6 +59,33 @@
     } catch {
       return timestamp;
     }
+  }
+
+  async function handleRestore(e: MouseEvent, versionId: number) {
+    e.stopPropagation();
+    const content = await restoreVersion(projectDir, promptName, versionId);
+    if (content !== null) {
+      currentContent.set(content);
+    }
+  }
+
+  function startEditAnnotation(e: MouseEvent, version: VersionEntry) {
+    e.stopPropagation();
+    editingAnnotation = version.id;
+    annotationInput = version.summary ?? "";
+  }
+
+  function handleAnnotationKeydown(e: KeyboardEvent, versionId: number) {
+    if (e.key === "Enter") {
+      saveAnnotation(versionId);
+    } else if (e.key === "Escape") {
+      editingAnnotation = null;
+    }
+  }
+
+  function saveAnnotation(versionId: number) {
+    annotateVersion(projectDir, promptName, versionId, annotationInput);
+    editingAnnotation = null;
   }
 
   function parseDiffLines(unified: string): Array<{ type: "add" | "del" | "ctx" | "header"; text: string }> {
@@ -95,17 +125,51 @@
     <ul class="timeline">
       {#each versions() as version}
         <li>
-          <button
+          <div
             class="version-item"
             class:selected={isSelected(version.id)}
+            role="button"
+            tabindex="0"
             onclick={() => handleVersionClick(version.id)}
+            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') handleVersionClick(version.id); }}
           >
             <span class="version-id">v{version.id}</span>
             <span class="version-date">{formatDate(version.timestamp)}</span>
-            {#if version.summary}
-              <span class="version-summary">{version.summary}</span>
+            {#if editingAnnotation === version.id}
+              <input
+                class="annotation-input"
+                type="text"
+                bind:value={annotationInput}
+                onkeydown={(e: KeyboardEvent) => handleAnnotationKeydown(e, version.id)}
+                onblur={() => saveAnnotation(version.id)}
+                onclick={(e: MouseEvent) => e.stopPropagation()}
+                placeholder="Add note..."
+              />
+            {:else if version.summary}
+              <span
+                class="version-summary"
+                role="button"
+                tabindex="0"
+                onclick={(e: MouseEvent) => startEditAnnotation(e, version)}
+                onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') startEditAnnotation(e as unknown as MouseEvent, version); }}
+                title="Click to edit note"
+              >{version.summary}</span>
+            {:else}
+              <span
+                class="version-summary add-note"
+                role="button"
+                tabindex="0"
+                onclick={(e: MouseEvent) => startEditAnnotation(e, version)}
+                onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') startEditAnnotation(e as unknown as MouseEvent, version); }}
+                title="Click to add note"
+              >+ note</span>
             {/if}
-          </button>
+            <button
+              class="restore-btn"
+              onclick={(e: MouseEvent) => handleRestore(e, version.id)}
+              title="Restore this version"
+            >Restore</button>
+          </div>
         </li>
       {/each}
     </ul>
@@ -217,6 +281,49 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .version-summary:hover {
+    color: #cdd6f4;
+  }
+
+  .version-summary.add-note {
+    color: #45475a;
+    font-style: italic;
+  }
+
+  .version-summary.add-note:hover {
+    color: #6c7086;
+  }
+
+  .annotation-input {
+    flex: 1;
+    margin-left: auto;
+    padding: 2px 6px;
+    font-size: 11px;
+    background-color: #313244;
+    color: #cdd6f4;
+    border: 1px solid #89b4fa;
+    border-radius: 3px;
+    outline: none;
+    min-width: 60px;
+  }
+
+  .restore-btn {
+    padding: 2px 8px;
+    font-size: 10px;
+    background-color: #313244;
+    color: #a6adc8;
+    border: 1px solid #45475a;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .restore-btn:hover {
+    background-color: #45475a;
+    color: #cdd6f4;
   }
 
   .diff-section {

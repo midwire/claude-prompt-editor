@@ -15,6 +15,19 @@
     newChildren[index] = child;
     onupdate({ ...block, children: newChildren });
   }
+
+  function addExample() {
+    const newExample: BlockType = {
+      kind: "Example",
+      tag_name: "example",
+      content: "[Your example input here]\n",
+      children: [],
+      enabled: true,
+      start_offset: 0,
+      end_offset: 0,
+    };
+    onupdate({ ...block, children: [...block.children, newExample] });
+  }
 </script>
 
 <Block {block} {onupdate}>
@@ -28,6 +41,7 @@
       />
     {/each}
   {/if}
+  <button class="add-example-btn" onclick={addExample}>+ Add Example</button>
 </Block>
 
 <style>
@@ -36,5 +50,21 @@
     font-size: 13px;
     font-style: italic;
     padding: 4px 0;
+  }
+
+  .add-example-btn {
+    margin-top: 8px;
+    padding: 4px 12px;
+    font-size: 12px;
+    background-color: #313244;
+    color: #a6adc8;
+    border: 1px dashed #45475a;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .add-example-btn:hover {
+    background-color: #45475a;
+    color: #cdd6f4;
   }
 </style>

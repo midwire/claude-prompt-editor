@@ -153,6 +153,45 @@ impl LintRule for UnbalancedXmlRule {
     }
 }
 
+/// Flags when documents/context blocks appear AFTER instructions blocks.
+pub struct LongContextLayoutRule;
+
+impl LintRule for LongContextLayoutRule {
+    fn id(&self) -> &str { "long-context-layout" }
+    fn description(&self) -> &str { "Place documents/context blocks before instructions for better model comprehension" }
+
+    fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
+        let mut results = vec![];
+        let mut last_instructions_index: Option<usize> = None;
+
+        for (i, block) in ast.blocks.iter().enumerate() {
+            if block.kind == BlockKind::Instructions {
+                last_instructions_index = Some(i);
+            }
+            if matches!(block.kind, BlockKind::Context | BlockKind::Documents) {
+                if let Some(instr_idx) = last_instructions_index {
+                    if i > instr_idx {
+                        let kind_name = match &block.kind {
+                            BlockKind::Context => "context",
+                            BlockKind::Documents => "documents",
+                            _ => "data",
+                        };
+                        results.push(LintResult {
+                            rule_id: self.id().to_string(),
+                            severity: Severity::Suggestion,
+                            message: format!("<{}> block appears after <instructions>", kind_name),
+                            detail: "Placing data and context before instructions helps the model reference it while following your instructions.".to_string(),
+                            block_index: Some(i),
+                            fix_suggestion: Some(format!("Move the <{}> block above <instructions>.", kind_name)),
+                        });
+                    }
+                }
+            }
+        }
+        results
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -265,6 +304,49 @@ mod tests {
             Block::new(BlockKind::Freeform, "<note>text</note>".into(), 0, 20),
         ]);
         let results = UnbalancedXmlRule.check(&ast);
+        assert!(results.is_empty());
+    }
+
+    // LongContextLayoutRule tests
+    #[test]
+    fn long_context_layout_flags_context_after_instructions() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Role, "You are helpful.".into(), 0, 20),
+            Block::new(BlockKind::Instructions, "Do things.".into(), 20, 40),
+            Block::new(BlockKind::Context, "Some context.".into(), 40, 60),
+        ]);
+        let results = LongContextLayoutRule.check(&ast);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].rule_id, "long-context-layout");
+    }
+
+    #[test]
+    fn long_context_layout_flags_documents_after_instructions() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Instructions, "Do things.".into(), 0, 20),
+            Block::new(BlockKind::Documents, "Doc content.".into(), 20, 40),
+        ]);
+        let results = LongContextLayoutRule.check(&ast);
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn long_context_layout_passes_when_context_before_instructions() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Context, "Some context.".into(), 0, 20),
+            Block::new(BlockKind::Instructions, "Do things.".into(), 20, 40),
+        ]);
+        let results = LongContextLayoutRule.check(&ast);
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn long_context_layout_passes_no_instructions() {
+        let ast = make_ast(vec![
+            Block::new(BlockKind::Role, "You are helpful.".into(), 0, 20),
+            Block::new(BlockKind::Context, "Some context.".into(), 20, 40),
+        ]);
+        let results = LongContextLayoutRule.check(&ast);
         assert!(results.is_empty());
     }
 

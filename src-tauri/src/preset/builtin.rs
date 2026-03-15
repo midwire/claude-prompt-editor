@@ -130,6 +130,34 @@ pub fn builtin_presets() -> Vec<Preset> {
             metadata_defaults: None,
         },
         // --- Example Skeleton ---
+        // --- Example Skeletons ---
+        Preset {
+            id: "example-skeleton-classification".into(),
+            name: "Classification Example".into(),
+            category: PresetCategory::ExampleSkeleton,
+            content: "<example>\n<input>[Text to classify]</input>\n<output>\nCategory: [category name]\nConfidence: [high/medium/low]\n</output>\n</example>"
+                .into(),
+            tag_name: Some("examples".into()),
+            metadata_defaults: None,
+        },
+        Preset {
+            id: "example-skeleton-extraction".into(),
+            name: "Extraction Example".into(),
+            category: PresetCategory::ExampleSkeleton,
+            content: "<example>\n<input>[Source document or text]</input>\n<output>\n{\n  \"field_1\": \"extracted value\",\n  \"field_2\": \"extracted value\"\n}\n</output>\n</example>"
+                .into(),
+            tag_name: Some("examples".into()),
+            metadata_defaults: None,
+        },
+        Preset {
+            id: "example-skeleton-qa".into(),
+            name: "Q&A Example".into(),
+            category: PresetCategory::ExampleSkeleton,
+            content: "<example>\n<input>[User question]</input>\n<output>\n[Concise answer with source citation]\n\nSource: [reference]\n</output>\n</example>"
+                .into(),
+            tag_name: Some("examples".into()),
+            metadata_defaults: None,
+        },
         Preset {
             id: "example-skeleton-io".into(),
             name: "Input/Output Example".into(),
@@ -150,7 +178,7 @@ mod tests {
     #[test]
     fn builtin_presets_not_empty() {
         let presets = builtin_presets();
-        assert!(presets.len() >= 10);
+        assert!(presets.len() >= 13);
     }
 
     #[test]
