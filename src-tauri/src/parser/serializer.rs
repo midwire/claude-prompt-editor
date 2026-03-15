@@ -16,22 +16,29 @@ pub fn serialize(ast: &PromptAst) -> String {
     out
 }
 
-fn serialize_block(block: &Block) -> String {
-    // Disabled blocks: wrap entire block in HTML comment
-    if !block.enabled {
-        let tag = block
-            .tag_name
-            .as_deref()
-            .unwrap_or("block");
-        let inner = if block.children.is_empty() {
-            format!("<{}>\n{}\n</{}>", tag, block.content, tag)
-        } else {
-            let children_str: String = block.children.iter().map(serialize_block).collect();
-            format!("<{}>\n{}</{}>", tag, children_str, tag)
-        };
-        return format!("<!-- disabled: {} -->\n", inner);
+/// Serialize AST to markdown, but skip disabled blocks.
+/// Used by MCP load_prompt to produce the "rendered" prompt.
+pub fn serialize_enabled_only(ast: &PromptAst) -> String {
+    let mut out = String::new();
+
+    if !ast.raw_frontmatter.is_empty() {
+        out.push_str(&ast.raw_frontmatter);
+        out.push_str("\n\n");
     }
 
+    for block in &ast.blocks {
+        if block.enabled {
+            out.push_str(&serialize_block(block));
+        }
+    }
+
+    out
+}
+
+fn serialize_block(block: &Block) -> String {
+    // Serialize all blocks normally — the enabled flag is tracked in the AST,
+    // not encoded in the markdown text. This avoids roundtrip issues where
+    // comment-wrapped blocks get re-parsed as freeform text.
     match &block.kind {
         BlockKind::Freeform => {
             format!("{}\n", block.content)
@@ -110,7 +117,11 @@ mod tests {
     }
 
     #[test]
-    fn test_serialize_disabled_block_as_comment() {
+    fn test_serialize_disabled_block_still_outputs_normally() {
+        // Disabled blocks are serialized the same as enabled blocks.
+        // The enabled flag is tracked in the AST only, not in the markdown.
+        // This avoids roundtrip issues where comment-wrapped blocks get
+        // re-parsed as freeform text.
         let ast = PromptAst::new(
             PromptMetadata::default(),
             vec![make_disabled_block(
@@ -122,11 +133,27 @@ mod tests {
         );
 
         let result = serialize(&ast);
-        assert!(result.starts_with("<!-- disabled:"));
         assert!(result.contains("<instructions>"));
         assert!(result.contains("Do the thing."));
         assert!(result.contains("</instructions>"));
-        assert!(result.contains("-->"));
+        // Should NOT be wrapped in a comment
+        assert!(!result.contains("<!--"));
+    }
+
+    #[test]
+    fn test_serialize_enabled_only_skips_disabled() {
+        let ast = PromptAst::new(
+            PromptMetadata::default(),
+            vec![
+                make_block(BlockKind::Role, "role", "I am active."),
+                make_disabled_block(BlockKind::Instructions, "instructions", "I am disabled."),
+            ],
+            String::new(),
+        );
+
+        let result = serialize_enabled_only(&ast);
+        assert!(result.contains("I am active."));
+        assert!(!result.contains("I am disabled."));
     }
 
     #[test]
