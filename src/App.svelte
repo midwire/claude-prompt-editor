@@ -1,7 +1,7 @@
 <script lang="ts">
   import { open, save } from "@tauri-apps/plugin-dialog";
   import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-  import { openPrompt, savePrompt, getMcpPort } from "./lib/tauri";
+  import { openPrompt, savePrompt, getMcpPort, getPromptsDir } from "./lib/tauri";
   import { currentContent } from "./lib/stores/editor";
   import { fileState } from "./lib/stores/files";
   import { editorMode, parseFromContent } from "./lib/stores/prompt";
@@ -54,8 +54,10 @@
   }
 
   async function handleOpen() {
+    const promptsDir = await getPromptsDir();
     const selected = await open({
       multiple: false,
+      defaultPath: promptsDir ?? undefined,
       filters: [
         { name: "Markdown", extensions: ["md"] },
         { name: "All Files", extensions: ["*"] },

@@ -7,6 +7,7 @@ use crate::mcp::tools::McpState;
 pub struct McpServerState {
     pub port: Arc<Mutex<Option<u16>>>,
     pub mcp_state: Arc<Mutex<Option<McpState>>>,
+    pub prompts_dir: Arc<Mutex<Option<PathBuf>>>,
 }
 
 impl McpServerState {
@@ -14,6 +15,7 @@ impl McpServerState {
         Self {
             port: Arc::new(Mutex::new(None)),
             mcp_state: Arc::new(Mutex::new(None)),
+            prompts_dir: Arc::new(Mutex::new(None)),
         }
     }
 }

@@ -36,3 +36,7 @@ export async function serializeAst(ast: PromptAst): Promise<string> {
 export async function getMcpPort(): Promise<number | null> {
   return invoke("get_mcp_port");
 }
+
+export async function getPromptsDir(): Promise<string | null> {
+  return invoke("get_prompts_dir");
+}

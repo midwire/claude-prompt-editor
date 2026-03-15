@@ -33,6 +33,13 @@ fn get_mcp_port(state: tauri::State<McpServerState>) -> Option<u16> {
     state.port.lock().ok().and_then(|guard| *guard)
 }
 
+#[tauri::command]
+fn get_prompts_dir(state: tauri::State<McpServerState>) -> Option<String> {
+    state.prompts_dir.lock().ok().and_then(|guard| {
+        guard.as_ref().map(|p| p.to_string_lossy().to_string())
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -72,6 +79,11 @@ pub fn run() {
 
             eprintln!("Prompts directory: {}", prompts_dir.display());
 
+            // Store prompts dir so frontend can query it
+            if let Ok(mut pd) = mcp_server_state.prompts_dir.lock() {
+                *pd = Some(prompts_dir.clone());
+            }
+
             tauri::async_runtime::spawn(async move {
                 match commands::mcp::start_mcp(prompts_dir, mcp_port).await {
                     Ok(port) => {
@@ -93,6 +105,7 @@ pub fn run() {
             save_prompt,
             list_prompts,
             get_mcp_port,
+            get_prompts_dir,
             commands::prompt::parse_prompt,
             commands::prompt::parse_content,
             commands::prompt::serialize_ast,
