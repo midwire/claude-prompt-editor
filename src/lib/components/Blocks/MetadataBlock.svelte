@@ -45,12 +45,15 @@
     </div>
     <div class="field">
       <label for="meta-model">Model</label>
-      <input
+      <select
         id="meta-model"
-        type="text"
         value={metadata.model}
-        oninput={(e) => updateField("model", (e.target as HTMLInputElement).value)}
-      />
+        onchange={(e) => updateField("model", (e.target as HTMLSelectElement).value)}
+      >
+        <option value="claude-opus-4-6">Claude Opus 4.6</option>
+        <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+        <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+      </select>
     </div>
     <div class="field">
       <label for="meta-effort">Effort</label>
@@ -66,6 +69,7 @@
         <option value="low">Low</option>
         <option value="medium">Medium</option>
         <option value="high">High</option>
+        <option value="max">Max</option>
       </select>
     </div>
     <div class="field">

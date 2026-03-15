@@ -25,7 +25,7 @@ pub fn builtin_templates() -> Vec<Template> {
             description: "A bare-bones prompt with just frontmatter and a role block.".into(),
             content: r#"---
 name: {{name}}
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-6
 version: 1
 tags: []
 ---
@@ -44,7 +44,7 @@ You are a helpful assistant.
                 .into(),
             content: r#"---
 name: {{name}}
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-6
 version: 1
 tags: []
 ---
@@ -75,7 +75,7 @@ Follow these steps:
             description: "For autonomous agents that take actions and use tools.".into(),
             content: r#"---
 name: {{name}}
-model: claude-sonnet-4-20250514
+model: claude-opus-4-6
 version: 1
 tags: [agentic]
 thinking:
@@ -120,7 +120,7 @@ I'll investigate the auth.js file, identify the issue, propose a fix, and verify
             description: "For code generation, review, and refactoring tasks.".into(),
             content: r#"---
 name: {{name}}
-model: claude-sonnet-4-20250514
+model: claude-opus-4-6
 version: 1
 tags: [coding]
 ---
@@ -160,7 +160,7 @@ When providing code changes, use this format:
             description: "A comprehensive template with role, context, instructions, examples, constraints, and output format.".into(),
             content: r#"---
 name: {{name}}
-model: claude-sonnet-4-20250514
+model: claude-opus-4-6
 version: 1
 tags: []
 ---
@@ -213,7 +213,7 @@ Describe the expected response format here.
             description: "For extracting structured data from documents.".into(),
             content: r#"---
 name: {{name}}
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-6
 version: 1
 tags: [extraction]
 ---
@@ -263,7 +263,7 @@ Respond with valid JSON matching this schema:
             description: "For answering questions from indexed documents with citations.".into(),
             content: r#"---
 name: {{name}}
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-6
 version: 1
 tags: [research, rag]
 ---
@@ -309,7 +309,7 @@ Provide a clear answer with inline citations. End with a "Sources" section listi
             description: "For chatbot-style interactions with a defined personality.".into(),
             content: r#"---
 name: {{name}}
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-6
 version: 1
 tags: [conversational]
 ---
@@ -342,7 +342,7 @@ You are a friendly, knowledgeable assistant with a warm and approachable persona
             description: "For categorizing inputs into predefined classes.".into(),
             content: r#"---
 name: {{name}}
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-6
 version: 1
 tags: [classification]
 ---
