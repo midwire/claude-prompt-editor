@@ -2,6 +2,8 @@ mod commands;
 pub mod linter;
 mod mcp;
 pub mod parser;
+pub mod preset;
+pub mod version;
 
 use commands::file;
 use commands::mcp::McpServerState;
@@ -67,6 +69,11 @@ pub fn run() {
             commands::prompt::parse_content,
             commands::prompt::serialize_ast,
             commands::lint::lint_prompt,
+            commands::preset::list_presets,
+            commands::preset::list_templates,
+            commands::version::save_prompt_version,
+            commands::version::get_version_history,
+            commands::version::diff_versions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
