@@ -3,13 +3,28 @@
   import { openPrompt, savePrompt } from "./lib/tauri";
   import { currentContent } from "./lib/stores/editor";
   import { fileState } from "./lib/stores/files";
+  import { editorMode, parseFromContent } from "./lib/stores/prompt";
   import SourceEditor from "./lib/components/Editor/SourceEditor.svelte";
+  import StructureEditor from "./lib/components/Editor/StructureEditor.svelte";
+  import EditorTabs from "./lib/components/Editor/EditorTabs.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
 
   let currentPath: string | null = $state(null);
+  let mode = $state<"source" | "structure">("source");
 
   fileState.subscribe((s) => {
     currentPath = s.path;
+  });
+
+  editorMode.subscribe((m) => {
+    mode = m;
+  });
+
+  // When content changes in source mode, parse to AST (debounced)
+  currentContent.subscribe((content) => {
+    if (content) {
+      parseFromContent(content);
+    }
   });
 
   async function handleOpen() {
@@ -73,8 +88,13 @@
     <button onclick={handleOpen} title="Open file (Ctrl+O)">Open</button>
     <button onclick={handleSave} title="Save file (Ctrl+S)">Save</button>
   </div>
+  <EditorTabs />
   <div class="editor-area">
-    <SourceEditor />
+    {#if mode === "source"}
+      <SourceEditor />
+    {:else}
+      <StructureEditor />
+    {/if}
   </div>
   <StatusBar />
 </div>
