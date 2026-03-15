@@ -4,10 +4,12 @@
   import { currentContent } from "./lib/stores/editor";
   import { fileState } from "./lib/stores/files";
   import { editorMode, parseFromContent } from "./lib/stores/prompt";
+  import { runLint } from "./lib/stores/lint";
   import SourceEditor from "./lib/components/Editor/SourceEditor.svelte";
   import StructureEditor from "./lib/components/Editor/StructureEditor.svelte";
   import EditorTabs from "./lib/components/Editor/EditorTabs.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
+  import PromptHealth from "./lib/components/Panels/PromptHealth.svelte";
 
   let currentPath: string | null = $state(null);
   let mode = $state<"source" | "structure">("source");
@@ -20,10 +22,11 @@
     mode = m;
   });
 
-  // When content changes in source mode, parse to AST (debounced)
+  // When content changes, parse to AST (debounced) and run lint
   currentContent.subscribe((content) => {
     if (content) {
       parseFromContent(content);
+      runLint(content);
     }
   });
 
@@ -89,12 +92,17 @@
     <button onclick={handleSave} title="Save file (Ctrl+S)">Save</button>
   </div>
   <EditorTabs />
-  <div class="editor-area">
-    {#if mode === "source"}
-      <SourceEditor />
-    {:else}
-      <StructureEditor />
-    {/if}
+  <div class="main-content">
+    <div class="editor-area">
+      {#if mode === "source"}
+        <SourceEditor />
+      {:else}
+        <StructureEditor />
+      {/if}
+    </div>
+    <div class="health-panel">
+      <PromptHealth />
+    </div>
   </div>
   <StatusBar />
 </div>
@@ -134,8 +142,20 @@
     border-color: transparent;
   }
 
+  .main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
   .editor-area {
     flex: 1;
+    overflow: hidden;
+  }
+
+  .health-panel {
+    width: 300px;
+    flex-shrink: 0;
     overflow: hidden;
   }
 </style>

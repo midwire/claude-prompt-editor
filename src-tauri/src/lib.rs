@@ -1,4 +1,5 @@
 mod commands;
+pub mod linter;
 mod mcp;
 pub mod parser;
 
@@ -65,6 +66,7 @@ pub fn run() {
             commands::prompt::parse_prompt,
             commands::prompt::parse_content,
             commands::prompt::serialize_ast,
+            commands::lint::lint_prompt,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

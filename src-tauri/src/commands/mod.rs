@@ -1,3 +1,4 @@
 pub mod file;
+pub mod lint;
 pub mod mcp;
 pub mod prompt;
