@@ -5,9 +5,10 @@
   interface Props {
     block: BlockType;
     onupdate: (block: BlockType) => void;
+    ondelete?: () => void;
   }
 
-  let { block, onupdate }: Props = $props();
+  let { block, onupdate, ondelete }: Props = $props();
 
   function handleInput(e: Event) {
     const target = e.target as HTMLTextAreaElement;
@@ -15,7 +16,7 @@
   }
 </script>
 
-<Block {block} {onupdate}>
+<Block {block} {onupdate} {ondelete}>
   <textarea
     class="block-textarea"
     value={block.content}

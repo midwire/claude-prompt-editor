@@ -5,10 +5,11 @@
   interface Props {
     block: BlockType;
     onupdate: (block: BlockType) => void;
+    ondelete?: () => void;
     children?: import("svelte").Snippet;
   }
 
-  let { block, onupdate, children }: Props = $props();
+  let { block, onupdate, ondelete, children }: Props = $props();
 
   let collapsed = $state(false);
 
@@ -53,6 +54,9 @@
     <label class="enable-toggle" title={block.enabled ? "Disable block" : "Enable block"}>
       <input type="checkbox" checked={block.enabled} onchange={toggleEnabled} />
     </label>
+    {#if ondelete}
+      <button class="delete-btn" onclick={ondelete} title="Delete block">&times;</button>
+    {/if}
   </div>
   {#if !collapsed}
     <div class="block-body">
@@ -144,6 +148,20 @@
 
   .enable-toggle input {
     cursor: pointer;
+  }
+
+  .delete-btn {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .delete-btn:hover {
+    color: #f48771;
   }
 
   .block-body {

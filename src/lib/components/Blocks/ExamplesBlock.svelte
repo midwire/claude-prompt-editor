@@ -6,9 +6,10 @@
   interface Props {
     block: BlockType;
     onupdate: (block: BlockType) => void;
+    ondelete?: () => void;
   }
 
-  let { block, onupdate }: Props = $props();
+  let { block, onupdate, ondelete }: Props = $props();
 
   function handleChildUpdate(index: number, child: BlockType) {
     const newChildren = [...block.children];
@@ -30,7 +31,7 @@
   }
 </script>
 
-<Block {block} {onupdate}>
+<Block {block} {onupdate} {ondelete}>
   {#if block.children.length === 0}
     <p class="empty-hint">No examples yet.</p>
   {:else}
