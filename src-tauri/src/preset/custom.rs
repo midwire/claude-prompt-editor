@@ -27,7 +27,7 @@ pub fn load_custom_presets(project_dir: &Path) -> Vec<Preset> {
     if let Ok(entries) = fs::read_dir(&dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |e| e == "json") {
+            if path.extension().is_some_and(|e| e == "json") {
                 if let Ok(content) = fs::read_to_string(&path) {
                     if let Ok(preset) = serde_json::from_str::<Preset>(&content) {
                         presets.push(preset);

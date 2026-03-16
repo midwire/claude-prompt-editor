@@ -6,6 +6,7 @@ use crate::mcp::tools::McpState;
 #[derive(Clone)]
 pub struct McpServerState {
     pub port: Arc<Mutex<Option<u16>>>,
+    #[allow(dead_code)]
     pub mcp_state: Arc<Mutex<Option<McpState>>>,
     pub prompts_dir: Arc<Mutex<Option<PathBuf>>>,
 }

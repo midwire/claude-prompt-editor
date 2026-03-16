@@ -19,8 +19,8 @@ impl LintRule for NegativeFramingRule {
 
         for (i, block) in ast.blocks.iter().enumerate() {
             let content = &block.content;
-            for mat in pattern.find_iter(content) {
-                // Extract surrounding context (up to 60 chars around the match)
+            // Only report the first match per block for this pattern
+            if let Some(mat) = pattern.find_iter(content).next() {
                 let start = mat.start().saturating_sub(20);
                 let end = (mat.end() + 40).min(content.len());
                 let context = &content[start..end];
@@ -36,8 +36,6 @@ impl LintRule for NegativeFramingRule {
                     block_index: Some(i),
                     fix_suggestion: Some("Rephrase using positive language: instead of \"don't do X\", say \"do Y instead\".".to_string()),
                 });
-                // Only report once per block for this pattern
-                break;
             }
         }
         results
@@ -62,7 +60,7 @@ impl LintRule for OverPromptingRule {
         let mut results = vec![];
 
         for (i, block) in ast.blocks.iter().enumerate() {
-            for mat in pattern.find_iter(&block.content) {
+            if let Some(mat) = pattern.find_iter(&block.content).next() {
                 let start = mat.start().saturating_sub(10);
                 let end = (mat.end() + 30).min(block.content.len());
                 let context = &block.content[start..end];
@@ -78,7 +76,6 @@ impl LintRule for OverPromptingRule {
                     block_index: Some(i),
                     fix_suggestion: Some("State the instruction plainly without excessive emphasis markers.".to_string()),
                 });
-                break;
             }
         }
         results
@@ -103,7 +100,7 @@ impl LintRule for VagueInstructionsRule {
         let mut results = vec![];
 
         for (i, block) in ast.blocks.iter().enumerate() {
-            for mat in pattern.find_iter(&block.content) {
+            if let Some(mat) = pattern.find_iter(&block.content).next() {
                 let matched = mat.as_str();
                 results.push(LintResult {
                     rule_id: self.id().to_string(),
@@ -116,7 +113,6 @@ impl LintRule for VagueInstructionsRule {
                         matched
                     )),
                 });
-                break;
             }
         }
         results

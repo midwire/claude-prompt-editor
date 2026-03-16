@@ -32,7 +32,7 @@ fn serialize_frontmatter(meta: &PromptMetadata) -> String {
         lines.push(format!("version: {}", meta.version));
     }
     if !meta.tags.is_empty() {
-        let tags: Vec<String> = meta.tags.iter().map(|t| format!("{}", t)).collect();
+        let tags: Vec<String> = meta.tags.iter().map(|t| t.to_string()).collect();
         lines.push(format!("tags: [{}]", tags.join(", ")));
     }
     if let Some(ref thinking) = meta.thinking {

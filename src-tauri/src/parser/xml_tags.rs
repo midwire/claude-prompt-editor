@@ -105,9 +105,9 @@ pub fn find_closing_tag(tags: &[TagSpan], open_idx: usize) -> Option<usize> {
     let target_name = &open_tag.name;
     let mut depth = 0;
 
-    for i in (open_idx + 1)..tags.len() {
-        if tags[i].name == *target_name {
-            if tags[i].is_closing {
+    for (i, tag) in tags.iter().enumerate().skip(open_idx + 1) {
+        if tag.name == *target_name {
+            if tag.is_closing {
                 if depth == 0 {
                     return Some(i);
                 }
@@ -181,8 +181,8 @@ pub fn parse_blocks(body: &str) -> Vec<Block> {
             covered_ranges.push((open_tag.offset, close_tag.end_offset));
 
             // Mark all tags between open and close as used
-            for j in i..=close_idx {
-                used[j] = true;
+            for used_flag in used.iter_mut().take(close_idx + 1).skip(i) {
+                *used_flag = true;
             }
 
             i = close_idx + 1;

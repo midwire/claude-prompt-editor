@@ -74,6 +74,7 @@ pub fn get_prompt_health(state: &McpState, name: &str) -> Result<String, String>
 }
 
 /// Persist variables to `<project_dir>/.claude-prompts/variables.yaml`.
+#[allow(dead_code)]
 pub fn persist_variables(state: &McpState, project_dir: &std::path::Path) -> Result<(), String> {
     let dir = project_dir.join(".claude-prompts");
     std::fs::create_dir_all(&dir)
@@ -101,6 +102,7 @@ pub fn persist_variables(state: &McpState, project_dir: &std::path::Path) -> Res
 }
 
 /// Load persisted variables from `<project_dir>/.claude-prompts/variables.yaml`.
+#[allow(dead_code)]
 pub fn load_persisted_variables(
     state: &McpState,
     project_dir: &std::path::Path,
