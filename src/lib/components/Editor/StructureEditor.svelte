@@ -9,6 +9,7 @@
   let ast = $state<PromptAst | null>(null);
   let error = $state<string | null>(null);
   let showAddMenu = $state(false);
+  let dragSourceIndex = $state<number | null>(null);
 
   const blockTypes: { kind: BlockKind; tag: string; label: string }[] = [
     { kind: "Role", tag: "role", label: "Role" },
@@ -66,6 +67,39 @@
     syncAstToContent(updated);
   }
 
+  function moveBlock(fromIndex: number, toIndex: number) {
+    if (!ast || fromIndex === toIndex) return;
+    const newBlocks = [...ast.blocks];
+    const [moved] = newBlocks.splice(fromIndex, 1);
+    newBlocks.splice(toIndex, 0, moved);
+    syncAstToContent({ ...ast, blocks: newBlocks });
+  }
+
+  function handleDragStart(index: number, e: DragEvent) {
+    dragSourceIndex = index;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(index));
+    }
+  }
+
+  function handleDragOver(e: DragEvent) {
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
+  }
+
+  function handleDrop(index: number) {
+    if (dragSourceIndex !== null && dragSourceIndex !== index) {
+      moveBlock(dragSourceIndex, index);
+    }
+    dragSourceIndex = null;
+  }
+
+  function handleDragEnd() {
+    dragSourceIndex = null;
+  }
+
   function isFreeform(block: BlockType): boolean {
     return block.kind === "Freeform";
   }
@@ -95,18 +129,30 @@
             {block}
             onupdate={(updated) => handleBlockUpdate(i, updated)}
             ondelete={() => deleteBlock(i)}
+            ondragstart={(e) => handleDragStart(i, e)}
+            ondragover={handleDragOver}
+            ondrop={() => handleDrop(i)}
+            ondragend={handleDragEnd}
           />
         {:else if isExamples(block)}
           <ExamplesBlock
             {block}
             onupdate={(updated) => handleBlockUpdate(i, updated)}
             ondelete={() => deleteBlock(i)}
+            ondragstart={(e) => handleDragStart(i, e)}
+            ondragover={handleDragOver}
+            ondrop={() => handleDrop(i)}
+            ondragend={handleDragEnd}
           />
         {:else}
           <TaggedBlock
             {block}
             onupdate={(updated) => handleBlockUpdate(i, updated)}
             ondelete={() => deleteBlock(i)}
+            ondragstart={(e) => handleDragStart(i, e)}
+            ondragover={handleDragOver}
+            ondrop={() => handleDrop(i)}
+            ondragend={handleDragEnd}
           />
         {/if}
       {/each}

@@ -6,10 +6,16 @@
     block: BlockType;
     onupdate: (block: BlockType) => void;
     ondelete?: () => void;
+    ondragstart?: (e: DragEvent) => void;
+    ondragover?: (e: DragEvent) => void;
+    ondrop?: (e: DragEvent) => void;
+    ondragend?: (e: DragEvent) => void;
     children?: import("svelte").Snippet;
   }
 
-  let { block, onupdate, ondelete, children }: Props = $props();
+  let { block, onupdate, ondelete, ondragstart, ondragover, ondrop, ondragend, children }: Props = $props();
+
+  let dragover = $state(false);
 
   let collapsed = $state(false);
 
@@ -39,9 +45,23 @@
   }
 </script>
 
-<div class="block" class:disabled={!block.enabled}>
+<div
+  class="block"
+  class:disabled={!block.enabled}
+  class:dragover={dragover}
+  ondragover={(e) => { e.preventDefault(); dragover = true; ondragover?.(e); }}
+  ondragleave={() => { dragover = false; }}
+  ondrop={(e) => { e.preventDefault(); dragover = false; ondrop?.(e); }}
+  ondragend={ondragend}
+  role="listitem"
+>
   <div class="block-header">
-    <button class="drag-handle" title="Drag to reorder">&#9776;</button>
+    <button
+      class="drag-handle"
+      title="Drag to reorder"
+      draggable="true"
+      ondragstart={ondragstart}
+    >&#9776;</button>
     <button class="collapse-toggle" onclick={toggleCollapse} title={collapsed ? "Expand" : "Collapse"}>
       {collapsed ? "\u25B6" : "\u25BC"}
     </button>
@@ -78,6 +98,11 @@
 
   .block.disabled {
     opacity: 0.5;
+  }
+
+  .block.dragover {
+    border-color: #007acc;
+    box-shadow: 0 0 0 1px #007acc;
   }
 
   .block-header {

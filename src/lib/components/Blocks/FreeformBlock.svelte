@@ -6,9 +6,13 @@
     block: BlockType;
     onupdate: (block: BlockType) => void;
     ondelete?: () => void;
+    ondragstart?: (e: DragEvent) => void;
+    ondragover?: (e: DragEvent) => void;
+    ondrop?: (e: DragEvent) => void;
+    ondragend?: (e: DragEvent) => void;
   }
 
-  let { block, onupdate, ondelete }: Props = $props();
+  let { block, onupdate, ondelete, ondragstart, ondragover, ondrop, ondragend }: Props = $props();
 
   function handleInput(e: Event) {
     const target = e.target as HTMLTextAreaElement;
@@ -16,7 +20,7 @@
   }
 </script>
 
-<Block {block} {onupdate} {ondelete}>
+<Block {block} {onupdate} {ondelete} {ondragstart} {ondragover} {ondrop} {ondragend}>
   <textarea
     class="freeform-textarea"
     value={block.content}

@@ -7,9 +7,13 @@
     block: BlockType;
     onupdate: (block: BlockType) => void;
     ondelete?: () => void;
+    ondragstart?: (e: DragEvent) => void;
+    ondragover?: (e: DragEvent) => void;
+    ondrop?: (e: DragEvent) => void;
+    ondragend?: (e: DragEvent) => void;
   }
 
-  let { block, onupdate, ondelete }: Props = $props();
+  let { block, onupdate, ondelete, ondragstart, ondragover, ondrop, ondragend }: Props = $props();
 
   function handleChildUpdate(index: number, child: BlockType) {
     const newChildren = [...block.children];
@@ -31,7 +35,7 @@
   }
 </script>
 
-<Block {block} {onupdate} {ondelete}>
+<Block {block} {onupdate} {ondelete} {ondragstart} {ondragover} {ondrop} {ondragend}>
   {#if block.children.length === 0}
     <p class="empty-hint">No examples yet.</p>
   {:else}
