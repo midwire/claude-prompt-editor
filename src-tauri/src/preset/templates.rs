@@ -402,7 +402,9 @@ mod tests {
     #[test]
     fn templates_cover_both_categories() {
         let templates = builtin_templates();
-        assert!(templates.iter().any(|t| t.category == TemplateCategory::Blank));
+        assert!(templates
+            .iter()
+            .any(|t| t.category == TemplateCategory::Blank));
         assert!(templates
             .iter()
             .any(|t| t.category == TemplateCategory::UseCase));

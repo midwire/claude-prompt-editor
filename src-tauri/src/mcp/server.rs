@@ -8,10 +8,7 @@ type SharedState = Arc<McpState>;
 
 async fn handle_mcp(State(state): State<SharedState>, Json(body): Json<Value>) -> Json<Value> {
     let id = body.get("id").cloned().unwrap_or(Value::Null);
-    let method = body
-        .get("method")
-        .and_then(|m| m.as_str())
-        .unwrap_or("");
+    let method = body.get("method").and_then(|m| m.as_str()).unwrap_or("");
 
     let result = match method {
         "initialize" => {
@@ -77,18 +74,12 @@ async fn handle_mcp(State(state): State<SharedState>, Json(body): Json<Value>) -
         }
         "tools/call" => {
             let params = body.get("params").cloned().unwrap_or(json!({}));
-            let tool_name = params
-                .get("name")
-                .and_then(|n| n.as_str())
-                .unwrap_or("");
+            let tool_name = params.get("name").and_then(|n| n.as_str()).unwrap_or("");
             let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
 
             match tool_name {
                 "load_prompt" => {
-                    let name = arguments
-                        .get("name")
-                        .and_then(|n| n.as_str())
-                        .unwrap_or("");
+                    let name = arguments.get("name").and_then(|n| n.as_str()).unwrap_or("");
                     match crate::mcp::tools::load_prompt(&state, name).await {
                         Ok(content) => json!({
                             "content": [{ "type": "text", "text": content }]
@@ -99,30 +90,24 @@ async fn handle_mcp(State(state): State<SharedState>, Json(body): Json<Value>) -
                         }),
                     }
                 }
-                "list_prompts" => {
-                    match crate::mcp::tools::list_prompts(&state).await {
-                        Ok(entries) => {
-                            let names: Vec<String> =
-                                entries.iter().map(|e| e.name.clone()).collect();
-                            json!({
-                                "content": [{ "type": "text", "text": serde_json::to_string(&names).unwrap_or_default() }]
-                            })
-                        }
-                        Err(e) => json!({
-                            "isError": true,
-                            "content": [{ "type": "text", "text": e }]
-                        }),
+                "list_prompts" => match crate::mcp::tools::list_prompts(&state).await {
+                    Ok(entries) => {
+                        let names: Vec<String> = entries.iter().map(|e| e.name.clone()).collect();
+                        json!({
+                            "content": [{ "type": "text", "text": serde_json::to_string(&names).unwrap_or_default() }]
+                        })
                     }
-                }
+                    Err(e) => json!({
+                        "isError": true,
+                        "content": [{ "type": "text", "text": e }]
+                    }),
+                },
                 "set_variable" => {
                     let prompt_name = arguments
                         .get("prompt_name")
                         .and_then(|n| n.as_str())
                         .unwrap_or("");
-                    let key = arguments
-                        .get("key")
-                        .and_then(|n| n.as_str())
-                        .unwrap_or("");
+                    let key = arguments.get("key").and_then(|n| n.as_str()).unwrap_or("");
                     let value = arguments
                         .get("value")
                         .and_then(|n| n.as_str())
@@ -133,10 +118,7 @@ async fn handle_mcp(State(state): State<SharedState>, Json(body): Json<Value>) -
                     })
                 }
                 "get_prompt_health" => {
-                    let name = arguments
-                        .get("name")
-                        .and_then(|n| n.as_str())
-                        .unwrap_or("");
+                    let name = arguments.get("name").and_then(|n| n.as_str()).unwrap_or("");
                     match crate::mcp::tools::get_prompt_health(&state, name) {
                         Ok(json_str) => json!({
                             "content": [{ "type": "text", "text": json_str }]

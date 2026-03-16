@@ -51,7 +51,11 @@ Print hello world.
         assert!(kinds.contains(&&BlockKind::Examples));
 
         // Examples block should have one child
-        let examples = ast.blocks.iter().find(|b| b.kind == BlockKind::Examples).unwrap();
+        let examples = ast
+            .blocks
+            .iter()
+            .find(|b| b.kind == BlockKind::Examples)
+            .unwrap();
         assert_eq!(examples.children.len(), 1);
         assert_eq!(examples.children[0].kind, BlockKind::Example);
     }

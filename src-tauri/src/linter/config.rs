@@ -15,9 +15,7 @@ pub struct LintConfig {
 pub fn load_config(project_dir: &Path) -> LintConfig {
     let config_path = project_dir.join(".claude-prompts").join("lintrc.yaml");
     match std::fs::read_to_string(&config_path) {
-        Ok(content) => {
-            serde_yaml::from_str(&content).unwrap_or_default()
-        }
+        Ok(content) => serde_yaml::from_str(&content).unwrap_or_default(),
         Err(_) => LintConfig::default(),
     }
 }
@@ -46,7 +44,13 @@ mod tests {
         ).unwrap();
 
         let config = load_config(dir.path());
-        assert_eq!(config.disabled_rules, vec!["missing-role", "sparse-examples"]);
-        assert_eq!(config.severity_overrides.get("over-prompting").unwrap(), "Error");
+        assert_eq!(
+            config.disabled_rules,
+            vec!["missing-role", "sparse-examples"]
+        );
+        assert_eq!(
+            config.severity_overrides.get("over-prompting").unwrap(),
+            "Error"
+        );
     }
 }

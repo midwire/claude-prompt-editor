@@ -4,8 +4,7 @@ use crate::parser::serializer;
 
 #[tauri::command]
 pub fn parse_prompt(path: String) -> Result<PromptAst, String> {
-    let file =
-        crate::commands::file::read_prompt_file(&std::path::PathBuf::from(&path))?;
+    let file = crate::commands::file::read_prompt_file(&std::path::PathBuf::from(&path))?;
     parser::parse(&file.content)
 }
 

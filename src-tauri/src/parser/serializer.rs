@@ -89,10 +89,7 @@ fn serialize_block(block: &Block) -> String {
             format!("{}\n", block.content)
         }
         _ => {
-            let tag = block
-                .tag_name
-                .as_deref()
-                .unwrap_or("block");
+            let tag = block.tag_name.as_deref().unwrap_or("block");
 
             if !block.children.is_empty() {
                 let children_str: String = block.children.iter().map(serialize_block).collect();

@@ -158,7 +158,9 @@ pub fn parse_blocks(body: &str) -> Vec<Block> {
             let content_start = open_tag.end_offset + 1; // after newline
             let content_end = close_tag.offset;
             let content = if content_start <= content_end && content_end <= body.len() {
-                body[content_start..content_end].trim_end_matches('\n').to_string()
+                body[content_start..content_end]
+                    .trim_end_matches('\n')
+                    .to_string()
             } else {
                 String::new()
             };

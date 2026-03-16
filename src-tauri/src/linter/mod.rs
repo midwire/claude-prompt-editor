@@ -41,9 +41,12 @@ mod tests {
 
     #[test]
     fn lint_runs_all_rules() {
-        let ast = make_ast(vec![
-            Block::new(BlockKind::Freeform, "Just some text.".into(), 0, 15),
-        ]);
+        let ast = make_ast(vec![Block::new(
+            BlockKind::Freeform,
+            "Just some text.".into(),
+            0,
+            15,
+        )]);
         let results = lint(&ast, &[]);
         // Should at least flag missing-role
         assert!(results.iter().any(|r| r.rule_id == "missing-role"));
@@ -51,9 +54,12 @@ mod tests {
 
     #[test]
     fn lint_respects_disabled_rules() {
-        let ast = make_ast(vec![
-            Block::new(BlockKind::Freeform, "Just some text.".into(), 0, 15),
-        ]);
+        let ast = make_ast(vec![Block::new(
+            BlockKind::Freeform,
+            "Just some text.".into(),
+            0,
+            15,
+        )]);
         let results = lint(&ast, &["missing-role".to_string()]);
         assert!(!results.iter().any(|r| r.rule_id == "missing-role"));
     }
@@ -62,7 +68,12 @@ mod tests {
     fn lint_clean_prompt_has_no_errors() {
         let mut examples = Block::new(BlockKind::Examples, String::new(), 0, 100);
         for i in 0..3 {
-            examples.children.push(Block::new(BlockKind::Example, format!("Example {}", i), 0, 10));
+            examples.children.push(Block::new(
+                BlockKind::Example,
+                format!("Example {}", i),
+                0,
+                10,
+            ));
         }
         let ast = make_ast(vec![
             Block::new(BlockKind::Role, "You are a coding assistant.".into(), 0, 30),
@@ -70,6 +81,10 @@ mod tests {
             examples,
         ]);
         let results = lint(&ast, &[]);
-        assert!(results.is_empty(), "Expected no lint results but got: {:?}", results);
+        assert!(
+            results.is_empty(),
+            "Expected no lint results but got: {:?}",
+            results
+        );
     }
 }

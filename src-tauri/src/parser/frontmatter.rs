@@ -23,7 +23,7 @@ pub fn parse_frontmatter(input: &str) -> (PromptMetadata, String, String) {
         let metadata: PromptMetadata = serde_yaml::from_str(yaml_str).unwrap_or_default();
 
         let after_closing = &after_opening[end_idx + 4..]; // skip "\n---"
-        // Skip optional newline after closing ---
+                                                           // Skip optional newline after closing ---
         let body = after_closing.strip_prefix('\n').unwrap_or(after_closing);
 
         return (metadata, body.to_string(), raw_frontmatter);

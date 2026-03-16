@@ -35,9 +35,11 @@ fn get_mcp_port(state: tauri::State<McpServerState>) -> Option<u16> {
 
 #[tauri::command]
 fn get_prompts_dir(state: tauri::State<McpServerState>) -> Option<String> {
-    state.prompts_dir.lock().ok().and_then(|guard| {
-        guard.as_ref().map(|p| p.to_string_lossy().to_string())
-    })
+    state
+        .prompts_dir
+        .lock()
+        .ok()
+        .and_then(|guard| guard.as_ref().map(|p| p.to_string_lossy().to_string()))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

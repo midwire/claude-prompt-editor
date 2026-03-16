@@ -58,7 +58,10 @@ pub async fn list_prompts(state: &McpState) -> Result<Vec<file::PromptListEntry>
 /// Set a variable for a specific prompt.
 pub async fn set_variable(state: &McpState, prompt_name: &str, key: &str, value: &str) {
     let mut vars = state.variables.write().await;
-    vars.insert((prompt_name.to_string(), key.to_string()), value.to_string());
+    vars.insert(
+        (prompt_name.to_string(), key.to_string()),
+        value.to_string(),
+    );
 }
 
 /// Run the linter on a prompt and return health results as JSON.
@@ -78,7 +81,10 @@ pub fn persist_variables(state: &McpState, project_dir: &std::path::Path) -> Res
     let path = dir.join("variables.yaml");
 
     // Build a nested map: { prompt_name -> { key -> value } }
-    let vars = state.variables.try_read().map_err(|e| format!("Lock error: {}", e))?;
+    let vars = state
+        .variables
+        .try_read()
+        .map_err(|e| format!("Lock error: {}", e))?;
     let mut nested: std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>> =
         std::collections::BTreeMap::new();
     for ((pname, key), value) in vars.iter() {
@@ -90,26 +96,29 @@ pub fn persist_variables(state: &McpState, project_dir: &std::path::Path) -> Res
 
     let yaml = serde_yaml::to_string(&nested)
         .map_err(|e| format!("Failed to serialize variables: {}", e))?;
-    std::fs::write(&path, yaml)
-        .map_err(|e| format!("Failed to write variables file: {}", e))?;
+    std::fs::write(&path, yaml).map_err(|e| format!("Failed to write variables file: {}", e))?;
     Ok(())
 }
 
 /// Load persisted variables from `<project_dir>/.claude-prompts/variables.yaml`.
-pub fn load_persisted_variables(state: &McpState, project_dir: &std::path::Path) -> Result<(), String> {
+pub fn load_persisted_variables(
+    state: &McpState,
+    project_dir: &std::path::Path,
+) -> Result<(), String> {
     let path = project_dir.join(".claude-prompts").join("variables.yaml");
     if !path.exists() {
         return Ok(());
     }
     let content = std::fs::read_to_string(&path)
         .map_err(|e| format!("Failed to read variables file: {}", e))?;
-    let nested: std::collections::BTreeMap<
-        String,
-        std::collections::BTreeMap<String, String>,
-    > = serde_yaml::from_str(&content)
-        .map_err(|e| format!("Failed to parse variables YAML: {}", e))?;
+    let nested: std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>> =
+        serde_yaml::from_str(&content)
+            .map_err(|e| format!("Failed to parse variables YAML: {}", e))?;
 
-    let mut vars = state.variables.try_write().map_err(|e| format!("Lock error: {}", e))?;
+    let mut vars = state
+        .variables
+        .try_write()
+        .map_err(|e| format!("Lock error: {}", e))?;
     for (pname, keys) in nested {
         for (key, value) in keys {
             vars.insert((pname.clone(), key), value);
@@ -188,7 +197,11 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("norole.md");
         // A prompt with no <role> block should trigger missing-role lint finding
-        std::fs::write(&path, "---\nname: norole\n---\nJust some instructions here without a role.").unwrap();
+        std::fs::write(
+            &path,
+            "---\nname: norole\n---\nJust some instructions here without a role.",
+        )
+        .unwrap();
 
         let state = McpState::new(dir.path().to_path_buf());
         let result = get_prompt_health(&state, "norole").unwrap();
@@ -198,8 +211,11 @@ mod tests {
         // Should contain a missing-role finding
         let findings = parsed.as_array().unwrap();
         assert!(
-            findings.iter().any(|f| f.get("rule_id").and_then(|v| v.as_str()) == Some("missing-role")),
-            "Expected missing-role finding in: {}", result
+            findings
+                .iter()
+                .any(|f| f.get("rule_id").and_then(|v| v.as_str()) == Some("missing-role")),
+            "Expected missing-role finding in: {}",
+            result
         );
     }
 

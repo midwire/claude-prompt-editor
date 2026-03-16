@@ -1,12 +1,16 @@
-use crate::parser::ast::{BlockKind, PromptAst};
 use super::rules::{LintResult, LintRule, Severity};
+use crate::parser::ast::{BlockKind, PromptAst};
 
 /// Flags when no `<role>` block is present.
 pub struct MissingRoleRule;
 
 impl LintRule for MissingRoleRule {
-    fn id(&self) -> &str { "missing-role" }
-    fn description(&self) -> &str { "Prompt should have a <role> block to define the assistant persona" }
+    fn id(&self) -> &str {
+        "missing-role"
+    }
+    fn description(&self) -> &str {
+        "Prompt should have a <role> block to define the assistant persona"
+    }
 
     fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
         let has_role = ast.blocks.iter().any(|b| b.kind == BlockKind::Role);
@@ -29,14 +33,20 @@ impl LintRule for MissingRoleRule {
 pub struct SparseExamplesRule;
 
 impl LintRule for SparseExamplesRule {
-    fn id(&self) -> &str { "sparse-examples" }
-    fn description(&self) -> &str { "Examples block should have at least 3 examples for reliable few-shot learning" }
+    fn id(&self) -> &str {
+        "sparse-examples"
+    }
+    fn description(&self) -> &str {
+        "Examples block should have at least 3 examples for reliable few-shot learning"
+    }
 
     fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
         let mut results = vec![];
         for (i, block) in ast.blocks.iter().enumerate() {
             if block.kind == BlockKind::Examples {
-                let example_count = block.children.iter()
+                let example_count = block
+                    .children
+                    .iter()
                     .filter(|c| c.kind == BlockKind::Example)
                     .count();
                 if example_count > 0 && example_count < 3 {
@@ -66,8 +76,12 @@ impl UnstructuredLongPromptRule {
 }
 
 impl LintRule for UnstructuredLongPromptRule {
-    fn id(&self) -> &str { "unstructured-long-prompt" }
-    fn description(&self) -> &str { "Long prompts should use XML tags for structure" }
+    fn id(&self) -> &str {
+        "unstructured-long-prompt"
+    }
+    fn description(&self) -> &str {
+        "Long prompts should use XML tags for structure"
+    }
 
     fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
         // Check if all blocks are Freeform (no XML structure)
@@ -76,7 +90,9 @@ impl LintRule for UnstructuredLongPromptRule {
             return vec![];
         }
 
-        let total_content: String = ast.blocks.iter()
+        let total_content: String = ast
+            .blocks
+            .iter()
             .map(|b| b.content.as_str())
             .collect::<Vec<_>>()
             .join("");
@@ -123,13 +139,21 @@ impl UnbalancedXmlRule {
             }
         }
 
-        open_tags.into_iter().collect::<std::collections::HashSet<_>>().into_iter().collect()
+        open_tags
+            .into_iter()
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
+            .collect()
     }
 }
 
 impl LintRule for UnbalancedXmlRule {
-    fn id(&self) -> &str { "unbalanced-xml" }
-    fn description(&self) -> &str { "Freeform blocks should not contain unclosed XML tags" }
+    fn id(&self) -> &str {
+        "unbalanced-xml"
+    }
+    fn description(&self) -> &str {
+        "Freeform blocks should not contain unclosed XML tags"
+    }
 
     fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
         let mut results = vec![];
@@ -142,7 +166,9 @@ impl LintRule for UnbalancedXmlRule {
                         rule_id: self.id().to_string(),
                         severity: Severity::Error,
                         message: format!("Unclosed XML tag(s): {}", tags),
-                        detail: "Unclosed tags may cause the model to misinterpret prompt structure.".to_string(),
+                        detail:
+                            "Unclosed tags may cause the model to misinterpret prompt structure."
+                                .to_string(),
                         block_index: Some(i),
                         fix_suggestion: Some(format!("Add closing tag(s) for: {}", tags)),
                     });
@@ -157,8 +183,12 @@ impl LintRule for UnbalancedXmlRule {
 pub struct LongContextLayoutRule;
 
 impl LintRule for LongContextLayoutRule {
-    fn id(&self) -> &str { "long-context-layout" }
-    fn description(&self) -> &str { "Place documents/context blocks before instructions for better model comprehension" }
+    fn id(&self) -> &str {
+        "long-context-layout"
+    }
+    fn description(&self) -> &str {
+        "Place documents/context blocks before instructions for better model comprehension"
+    }
 
     fn check(&self, ast: &PromptAst) -> Vec<LintResult> {
         let mut results = vec![];
@@ -204,9 +234,12 @@ mod tests {
     // MissingRoleRule tests
     #[test]
     fn missing_role_flags_when_no_role() {
-        let ast = make_ast(vec![
-            Block::new(BlockKind::Instructions, "Do things.".into(), 0, 10),
-        ]);
+        let ast = make_ast(vec![Block::new(
+            BlockKind::Instructions,
+            "Do things.".into(),
+            0,
+            10,
+        )]);
         let results = MissingRoleRule.check(&ast);
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].rule_id, "missing-role");
@@ -215,9 +248,12 @@ mod tests {
 
     #[test]
     fn missing_role_passes_when_role_present() {
-        let ast = make_ast(vec![
-            Block::new(BlockKind::Role, "You are helpful.".into(), 0, 10),
-        ]);
+        let ast = make_ast(vec![Block::new(
+            BlockKind::Role,
+            "You are helpful.".into(),
+            0,
+            10,
+        )]);
         let results = MissingRoleRule.check(&ast);
         assert!(results.is_empty());
     }
@@ -226,7 +262,9 @@ mod tests {
     #[test]
     fn sparse_examples_flags_one_example() {
         let mut examples = Block::new(BlockKind::Examples, String::new(), 0, 100);
-        examples.children.push(Block::new(BlockKind::Example, "ex1".into(), 0, 10));
+        examples
+            .children
+            .push(Block::new(BlockKind::Example, "ex1".into(), 0, 10));
 
         let ast = make_ast(vec![examples]);
         let results = SparseExamplesRule.check(&ast);
@@ -239,7 +277,9 @@ mod tests {
     fn sparse_examples_passes_with_three() {
         let mut examples = Block::new(BlockKind::Examples, String::new(), 0, 100);
         for i in 0..3 {
-            examples.children.push(Block::new(BlockKind::Example, format!("ex{}", i), 0, 10));
+            examples
+                .children
+                .push(Block::new(BlockKind::Example, format!("ex{}", i), 0, 10));
         }
         let ast = make_ast(vec![examples]);
         let results = SparseExamplesRule.check(&ast);
@@ -258,9 +298,7 @@ mod tests {
     #[test]
     fn unstructured_long_prompt_flags_long_freeform() {
         let long_text = "a ".repeat(1200); // ~2400 chars => ~600 tokens
-        let ast = make_ast(vec![
-            Block::new(BlockKind::Freeform, long_text, 0, 2400),
-        ]);
+        let ast = make_ast(vec![Block::new(BlockKind::Freeform, long_text, 0, 2400)]);
         let results = UnstructuredLongPromptRule.check(&ast);
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].rule_id, "unstructured-long-prompt");
@@ -279,9 +317,12 @@ mod tests {
 
     #[test]
     fn unstructured_long_prompt_passes_when_short() {
-        let ast = make_ast(vec![
-            Block::new(BlockKind::Freeform, "Hello world.".into(), 0, 12),
-        ]);
+        let ast = make_ast(vec![Block::new(
+            BlockKind::Freeform,
+            "Hello world.".into(),
+            0,
+            12,
+        )]);
         let results = UnstructuredLongPromptRule.check(&ast);
         assert!(results.is_empty());
     }
@@ -289,9 +330,12 @@ mod tests {
     // UnbalancedXmlRule tests
     #[test]
     fn unbalanced_xml_flags_unclosed_tag() {
-        let ast = make_ast(vec![
-            Block::new(BlockKind::Freeform, "<note>Some text here".into(), 0, 20),
-        ]);
+        let ast = make_ast(vec![Block::new(
+            BlockKind::Freeform,
+            "<note>Some text here".into(),
+            0,
+            20,
+        )]);
         let results = UnbalancedXmlRule.check(&ast);
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].rule_id, "unbalanced-xml");
@@ -300,9 +344,12 @@ mod tests {
 
     #[test]
     fn unbalanced_xml_passes_balanced() {
-        let ast = make_ast(vec![
-            Block::new(BlockKind::Freeform, "<note>text</note>".into(), 0, 20),
-        ]);
+        let ast = make_ast(vec![Block::new(
+            BlockKind::Freeform,
+            "<note>text</note>".into(),
+            0,
+            20,
+        )]);
         let results = UnbalancedXmlRule.check(&ast);
         assert!(results.is_empty());
     }
@@ -352,9 +399,12 @@ mod tests {
 
     #[test]
     fn unbalanced_xml_ignores_non_freeform() {
-        let ast = make_ast(vec![
-            Block::new(BlockKind::Instructions, "<note>unclosed".into(), 0, 14),
-        ]);
+        let ast = make_ast(vec![Block::new(
+            BlockKind::Instructions,
+            "<note>unclosed".into(),
+            0,
+            14,
+        )]);
         let results = UnbalancedXmlRule.check(&ast);
         assert!(results.is_empty());
     }
