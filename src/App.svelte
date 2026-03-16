@@ -96,6 +96,9 @@
     try {
       await savePrompt(path, content);
       fileState.markClean();
+      if (!currentPath) {
+        fileState.openFile(path, currentName, content);
+      }
       // Auto-save version on file save
       const projDir = getProjectDir(path);
       const pName = getPromptName(path, currentName);
