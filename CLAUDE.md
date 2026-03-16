@@ -1,7 +1,3 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## What This Is
 
 A Tauri 2.0 desktop IDE for crafting Claude API prompts. Rust backend, Svelte 5 frontend, Monaco editor. Includes a built-in MCP server so Claude Code can load prompts directly.
@@ -25,7 +21,7 @@ cd src-tauri && cargo test parser::xml_tags::tests::test_find_tags_basic -- --no
 cd src-tauri && cargo build
 ```
 
-**Important:** During `pnpm tauri dev`, the Rust binary's cwd is `src-tauri/`, not the project root. This affects file path resolution — the prompts directory finder walks up to locate `prompts/`.
+**Note:** During `pnpm tauri dev`, the Rust binary's cwd is `src-tauri/`, not the project root.
 
 ## Architecture
 
