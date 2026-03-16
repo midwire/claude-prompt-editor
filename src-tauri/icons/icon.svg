@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <!-- Background gradient: deep indigo to rich purple -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1040"/>
+      <stop offset="50%" stop-color="#2d1b69"/>
+      <stop offset="100%" stop-color="#4a2c8a"/>
+    </linearGradient>
+    <!-- Accent gradient for the brackets -->
+    <linearGradient id="bracket" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e8a0ff"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <!-- Warm accent for the inner element -->
+    <linearGradient id="warm" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f9a872"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+    <!-- Subtle glow -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="15" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background: rounded square -->
+  <rect x="32" y="32" width="960" height="960" rx="200" ry="200" fill="url(#bg)"/>
+
+  <!-- Subtle inner border -->
+  <rect x="48" y="48" width="928" height="928" rx="188" ry="188"
+        fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="2"/>
+
+  <!-- Left angle bracket < -->
+  <path d="M 340 310 L 170 512 L 340 714"
+        fill="none" stroke="url(#bracket)" stroke-width="64"
+        stroke-linecap="round" stroke-linejoin="round"
+        filter="url(#glow)"/>
+
+  <!-- Right angle bracket > -->
+  <path d="M 684 310 L 854 512 L 684 714"
+        fill="none" stroke="url(#bracket)" stroke-width="64"
+        stroke-linecap="round" stroke-linejoin="round"
+        filter="url(#glow)"/>
+
+  <!-- Slash / in the middle (representing </>) -->
+  <line x1="560" y1="330" x2="464" y2="694"
+        stroke="url(#warm)" stroke-width="56"
+        stroke-linecap="round"
+        filter="url(#softglow)"/>
+
+  <!-- Small sparkle/star dots suggesting AI -->
+  <circle cx="512" cy="220" r="10" fill="#e8a0ff" opacity="0.8"/>
+  <circle cx="440" cy="250" r="6" fill="#f9a872" opacity="0.6"/>
+  <circle cx="590" cy="240" r="7" fill="#a78bfa" opacity="0.7"/>
+
+  <!-- Bottom sparkles -->
+  <circle cx="512" cy="804" r="10" fill="#e8a0ff" opacity="0.8"/>
+  <circle cx="580" cy="778" r="6" fill="#f9a872" opacity="0.6"/>
+  <circle cx="438" cy="786" r="7" fill="#a78bfa" opacity="0.7"/>
+</svg>
