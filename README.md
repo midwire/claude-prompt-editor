@@ -50,6 +50,14 @@ pnpm tauri dev
 
 The editor opens and the MCP server starts automatically on port 9780.
 
+### Wayland
+
+If you see a blank window or `GBM buffer` / `Protocol error` messages on Wayland, force compositing off:
+
+```bash
+WEBKIT_DISABLE_COMPOSITING_MODE=1 GDK_BACKEND=x11 pnpm tauri dev
+```
+
 ## Claude Code Integration
 
 To use prompts from the editor in Claude Code:
